@@ -223,6 +223,11 @@
 
 /* Ajustes responsivos do painel direito */
 @media (max-width: 991.98px) {
+  .login-container {
+    width: 480px;
+    max-width: 95vw;
+  }
+
   .right-panel {
     width: 100%;
     padding: 2.5rem 1.75rem;
