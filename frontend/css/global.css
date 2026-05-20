@@ -17,7 +17,7 @@
   --success: #4caf7d;
   --font-serif: Georgia, 'Times New Roman', serif;
   --font-sans: 'Segoe UI', Arial, sans-serif;
-  
+
   /* Tokens Bootstrap alinhados ao tema */
   --bs-warning: var(--gold);
   --bs-warning-rgb: 201, 168, 76;
@@ -205,11 +205,6 @@ header.fixed-top {
   .navbar-nav a {
     padding: 0.5rem 0;
     display: block;
-  }
-}
-
-@media (max-width: 768px) {
-  .navbar-nav a {
     font-size: 16px;
   }
 }

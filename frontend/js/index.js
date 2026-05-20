@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Dados dos serviços exibidos na home — alterar aqui para atualizar a vitrine.
 const INDEX_SERVICOS = [
-  { titulo: 'Corte de Cabelo', descricao: 'Cortes modernos e clássicos executados com precisão.', preco: 35, icone: '✂' },
+  { titulo: 'Cabelo', descricao: 'Cortes modernos e clássicos executados com precisão.', preco: 35, icone: '✂' },
   { titulo: 'Barba', descricao: 'Modelagem e acabamento com navalha para um visual impecável.', preco: 25, icone: '🪒' },
-  { titulo: 'Corte + Barba', descricao: 'O combo completo para quem quer sair renovado.', preco: 55, icone: '💆' },
+  { titulo: 'Sobrancelha', descricao: 'Design e acabamento profissional para realçar o seu olhar.', preco: 15, icone: '👁' },
 ];
 
 // Renderiza a seção de serviços na home mantendo classes Bootstrap para responsividade.
