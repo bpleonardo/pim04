@@ -43,10 +43,7 @@ namespace api.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> Post(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            [FromBody] ServicoCreateDTO dto
-        )
+        public async Task<ActionResult> Post([FromBody] ServicoCreateDTO dto)
         {
             var created = await _service.CreateOne(dto);
 
@@ -66,11 +63,7 @@ namespace api.Controllers
         [HttpPut("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> Put(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            Guid id,
-            [FromBody] ServicoCreateDTO dto
-        )
+        public async Task<ActionResult> Put(Guid id, [FromBody] ServicoCreateDTO dto)
         {
             var updated = await _service.ReplaceOne(id, dto);
 
@@ -90,11 +83,7 @@ namespace api.Controllers
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> Patch(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            Guid id,
-            [FromBody] ServicoUpdateDTO dto
-        )
+        public async Task<ActionResult> Patch(Guid id, [FromBody] ServicoUpdateDTO dto)
         {
             var updated = await _service.UpdateOne(id, dto);
 
@@ -132,10 +121,7 @@ namespace api.Controllers
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult> Delete(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            Guid id
-        )
+        public async Task<ActionResult> Delete(Guid id)
         {
             var result = await _service.DeleteOne(id);
 

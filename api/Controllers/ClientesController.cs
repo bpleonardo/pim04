@@ -41,7 +41,6 @@ namespace api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<EmptyResponse>), StatusCodes.Status409Conflict)]
         public async Task<ActionResult<ApiResponse<EmptyResponse>>> Post(
-            [FromHeader(Name = "Nonce")] string _, // TODO
             [FromBody] ClienteCreateDTO dto
         )
         {
@@ -61,25 +60,14 @@ namespace api.Controllers
 
         // PUT /api/clientes/3fa85f64-5717-4562-b3fc-2c963f66afa6
         [HttpPut("{id}")]
-        public async void Put(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            Guid id,
-            [FromBody] string value
-        ) { }
+        public async void Put(Guid id, [FromBody] string value) { }
 
         // PATCH /api/clientes/3fa85f64-5717-4562-b3fc-2c963f66afa6
         [HttpPatch("{id}")]
-        public async void Patch(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            Guid id,
-            [FromBody] string value
-        ) { }
+        public async void Patch(Guid id, [FromBody] string value) { }
 
         // DELETE /api/clientes/3fa85f64-5717-4562-b3fc-2c963f66afa6
         [HttpDelete("{id}")]
-        public async void Delete(
-            [FromHeader(Name = "Nonce")] string _, // TODO
-            Guid id
-        ) { }
+        public async void Delete(Guid id) { }
     }
 }
