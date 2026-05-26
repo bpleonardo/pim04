@@ -1,0 +1,12 @@
+/* Estilos mínimos para a página de serviços */
+.page-title { font-size: 1.6rem; }
+.section-tag { color: var(--muted); }
+.table td, .table th { vertical-align: middle; }
+.modal .form-label { font-weight: 600; }
+.modal-dialog { max-width: 720px; }
+
+@media (max-width: 576px) {
+	.modal-dialog { max-width: 95%; }
+	.table-responsive { overflow-x: auto; }
+}
+

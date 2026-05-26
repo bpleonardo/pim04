@@ -3,12 +3,13 @@ const estado = {
   servicos: [],
   data: null,
   horario: null,
+  funcionario: null,
 };
 
 // A partir deste dia (contando de hoje), a UI bloqueia horários por indisponibilidade.
 const DIAS_LIMITE_SEM_HORARIOS = 10;
 
-const API_BASE = '/api';
+const API_BASE = '/fake-api';
 
 // Dados que alimentam a interface sem repetir markup no HTML.
 let SERVICOS = [
@@ -16,6 +17,8 @@ let SERVICOS = [
   { nome: 'Sobrancelha', preco: 15, icone: '🪒' },
   { nome: 'Barba', preco: 25, icone: '🧔' },
 ];
+
+let FUNCIONARIOS = [];
 
 function iconeServico(nome) {
   const normalizado = nome.toLowerCase();
@@ -49,6 +52,35 @@ async function carregarServicosDaApi() {
   }
 }
 
+async function carregarFuncionariosDaApi() {
+  try {
+    const response = await fetch(`${API_BASE}/funcionarios`);
+
+    if (!response.ok) {
+      throw new Error(`Falha ao carregar funcionários (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const data = Array.isArray(payload?.data) ? payload.data : [];
+
+    if (data.length) {
+      FUNCIONARIOS = data.map(f => ({ id: f.id, nome: f.nome, telefone: f.telefone }));
+      renderizarFuncionarios();
+    }
+  } catch (error) {
+    console.warn('Não foi possível carregar funcionários da API.', error);
+  }
+}
+
+function renderizarFuncionarios() {
+  const sel = dom.funcionario;
+  if (!sel) return;
+  sel.innerHTML = `\
+    <option value="">— Selecionar profissional —</option>\
+    ${FUNCIONARIOS.map(f => `<option value="${f.id}">${f.nome}</option>`).join('')}\
+  `;
+}
+
 const HORARIOS = [
   { hora: '08:00', disponivel: true },
   { hora: '08:30', disponivel: true },
@@ -75,6 +107,7 @@ const RESUMO = [
   { chave: 'servicos', label: 'Serviços', valor: () => (estado.servicos.length ? estado.servicos.map(s => s.nome).join(', ') : '—') },
   { chave: 'data', label: 'Dia', valor: () => formatarDataBR(dom.data?.value) },
   { chave: 'horario', label: 'Horário', valor: () => estado.horario || '—' },
+  { chave: 'funcionario', label: 'Profissional', valor: () => estado.funcionario || '—' },
   { chave: 'nome', label: 'Nome', valor: () => dom.nome?.value.trim() || '—' },
   { chave: 'telefone', label: 'Telefone', valor: () => dom.tel?.value.trim() || '—' },
   { chave: 'email', label: 'E-mail', valor: () => dom.email?.value.trim() || '—' },
@@ -110,6 +143,7 @@ const dom = {
   resTelefone: null,
   resEmail: null,
   resTotal: null,
+  funcionario: null,
   resumoCorpo: null,
   resumoValores: {},
   sucNome: null,
@@ -403,6 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
   dom.resTotal = document.getElementById('res-total');
   dom.sucNome = document.getElementById('suc-nome');
   dom.resumoCorpo = document.getElementById('resumo-corpo');
+  dom.funcionario = document.getElementById('funcionario');
   dom.panel1 = document.getElementById('panel-1');
   dom.panels = Array.from(document.querySelectorAll('.step-panel'));
   dom.stepIndicators = Array.from(document.querySelectorAll('.step'));
@@ -417,6 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarServicos();
   renderizarResumo();
   void carregarServicosDaApi();
+  void carregarFuncionariosDaApi();
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -433,6 +469,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dom.data.addEventListener('change', () => {
       atualizarFeedbackDataEHorarios();
+    });
+  }
+
+  if (dom.funcionario) {
+    dom.funcionario.addEventListener('change', () => {
+      const sel = dom.funcionario;
+      const nome = sel.options[sel.selectedIndex]?.text || '';
+      estado.funcionario = sel.value ? nome : null;
+      atualizarResumo();
     });
   }
 

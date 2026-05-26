@@ -20,6 +20,8 @@ const FEATURES = [
   'Relatórios financeiros',
 ];
 
+const API_BASE = '/api';
+
 function renderFeatures() {
   const container = document.getElementById('features-list');
   if (!container) return;
@@ -46,9 +48,9 @@ function mostrarErro(input, error) {
   error.style.display = 'block';
 }
 
-// Valida os campos e simula o login.
-// O fluxo é propositalmente simples: validação, feedback visual e mock de resposta.
-function handleLogin() {
+// Valida os campos e autentica via API.
+// O fluxo é: validação local, chamada ao backend e redirecionamento em caso de sucesso.
+async function handleLogin() {
   let valid = true;
 
   dom.alert.style.display = 'none';
@@ -67,18 +69,53 @@ function handleLogin() {
 
   if (!valid) return;
 
-  // Feedback temporário enquanto o back-end não existe.
+  // Feedback temporário durante a chamada à API.
   dom.btn.classList.add('loading');
   dom.btn.textContent = 'Verificando...';
 
-  // TODO: substituir pelo fetch para POST /login quando o back-end estiver pronto.
-  setTimeout(() => {
-    dom.btn.classList.remove('loading');
-    dom.btn.textContent = 'Entrar';
+  try {
+    const response = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        login: dom.login.value.trim(),
+        senha: dom.senha.value.trim(),
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      dom.alert.textContent = payload?.message || payload?.error?.message || 'Login ou senha inválidos.';
+      dom.alert.style.display = 'block';
+      mostrarErro(dom.login, dom.loginErr);
+      mostrarErro(dom.senha, dom.senhaErr);
+      return;
+    }
+
+    try {
+      if (payload?.token) {
+        localStorage.setItem('auth_token', payload.token);
+      }
+      if (payload?.user) {
+        localStorage.setItem('auth_user', JSON.stringify(payload.user));
+      }
+    } catch (error) {
+      // Ignora falha de armazenamento local para não quebrar o fluxo de login.
+    }
+
+    window.location.href = 'dashboard.html';
+  } catch (error) {
+    dom.alert.textContent = 'Não foi possível conectar na API de login.';
     dom.alert.style.display = 'block';
     mostrarErro(dom.login, dom.loginErr);
     mostrarErro(dom.senha, dom.senhaErr);
-  }, 1200);
+  } finally {
+    dom.btn.classList.remove('loading');
+    dom.btn.textContent = 'Entrar';
+  }
 }
 
 // Atualiza o `tabindex` do painel lateral para não deixar foco em elementos invisíveis.
