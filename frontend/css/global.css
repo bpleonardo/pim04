@@ -258,6 +258,34 @@ header.fixed-top {
   color: var(--muted);
 }
 
+/* Tabelas com tema escuro em todo o front */
+.table {
+  --bs-table-color: var(--text);
+  --bs-table-bg: var(--dark);
+  --bs-table-striped-color: var(--text);
+  --bs-table-striped-bg: #111111;
+  --bs-table-hover-color: var(--text);
+  --bs-table-hover-bg: #171717;
+  --bs-table-border-color: var(--border);
+  color: var(--text);
+  margin-bottom: 0;
+}
+
+.table > :not(caption) > * > * {
+  background-color: var(--dark);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.table thead th {
+  background: #0a0a0a;
+  color: var(--muted);
+}
+
+.table tbody tr:hover > * {
+  background-color: #171717;
+}
+
 .form-control {
   min-height: 46px;
   border-radius: 2px;

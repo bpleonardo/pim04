@@ -193,25 +193,21 @@
 
 .clientes-table {
   color: var(--text);
-  margin-bottom: 0;
   min-width: 760px;
 }
 
 .clientes-table thead th {
-  color: var(--muted);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08rem;
-  border-bottom-color: var(--border);
   padding-top: 0;
 }
 
 .clientes-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: #1b1b1b;
 }
 
 .clientes-table tbody td {
-  border-top-color: var(--border);
   padding-top: 0.95rem;
   padding-bottom: 0.95rem;
 }
