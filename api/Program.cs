@@ -34,6 +34,15 @@ namespace api
             builder.Services.AddScoped<Repositories.AgendamentosRepository>();
             builder.Services.AddScoped<Services.AgendamentosService>();
 
+            builder.Services.AddScoped<Repositories.UsuariosRepository>();
+            builder.Services.AddScoped<Services.AuthService>();
+
+            builder.Services.AddScoped<Repositories.FuncionariosRepository>();
+            builder.Services.AddScoped<Services.FuncionariosService>();
+
+            builder.Services.AddScoped<Services.DashboardService>();
+            builder.Services.AddScoped<Services.FinanceiroService>();
+
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();

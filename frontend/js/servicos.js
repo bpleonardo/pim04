@@ -1,4 +1,4 @@
-const API_BASE = '/fake-api';
+const API_BASE = '/api';
 
 function showToast(message, type = 'info', ttl = 4000) {
   const container = document.getElementById('toast-container');

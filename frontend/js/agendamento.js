@@ -9,7 +9,7 @@ const estado = {
 // A partir deste dia (contando de hoje), a UI bloqueia horários por indisponibilidade.
 const DIAS_LIMITE_SEM_HORARIOS = 10;
 
-const API_BASE = '/fake-api';
+const API_BASE = '/api';
 
 // Dados que alimentam a interface sem repetir markup no HTML.
 let SERVICOS = [
@@ -41,6 +41,7 @@ async function carregarServicosDaApi() {
 
     if (data.length) {
       SERVICOS = data.map((servico) => ({
+        id: servico.id,
         nome: servico.nome,
         preco: Number(servico.preco) || 0,
         icone: iconeServico(servico.nome),
@@ -244,6 +245,7 @@ function renderizarServicos() {
           class="servico-card btn btn-outline-secondary w-100 h-100 text-start p-3"
           type="button"
           data-servico
+          data-id="${servico.id}"
           data-nome="${servico.nome}"
           data-preco="${servico.preco}"
         >
@@ -544,15 +546,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Seleciona ou remove um serviço da lista atual.
 function toggleServico(card) {
+  const id = card.dataset.id;
   const nome = card.dataset.nome;
   const preco = Number(card.dataset.preco);
 
-  const jaSelecionado = estado.servicos.some(s => s.nome === nome);
+  const jaSelecionado = estado.servicos.some(s => s.id === id);
 
   if (jaSelecionado) {
-    estado.servicos = estado.servicos.filter(s => s.nome !== nome);
+    estado.servicos = estado.servicos.filter(s => s.id !== id);
   } else {
-    estado.servicos.push({ nome, preco });
+    estado.servicos.push({ id, nome, preco });
   }
 
   sincronizarServicos();
@@ -683,19 +686,62 @@ function irParaStep(step) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Confirmação final (mock)
-function confirmarAgendamento() {
+// Confirmação final - POST para /api/agendamentos
+async function confirmarAgendamento() {
   const nome = dom.nome.value.trim();
+  const telefone = dom.tel.value.trim().replace(/\D/g, '');
+  const email = dom.email.value.trim() || null;
+  const dataStr = dom.data.value;
+  const horaStr = estado.horario;
+  const funcionarioId = dom.funcionario?.value;
 
-  // TODO: substituir pelo fetch para POST /agendamento quando o back-end estiver pronto
+  // Validações finais
+  if (!nome || !telefone || !estado.servicos.length || !dataStr || !horaStr || !funcionarioId) {
+    alert('Preencha todos os campos obrigatórios.');
+    return;
+  }
 
-  dom.panels.forEach(p => p.classList.remove('active'));
-  setVisibilidade(dom.steps, false);
-  setVisibilidade(dom.stepTitle, false);
-  setVisibilidade(dom.stepTag, false);
+  // Montar payload para POST /api/agendamentos
+  const payload = {
+    nomeCliente: nome,
+    telefoneCliente: telefone,
+    emailCliente: email,
+    dataAgendamento: `${dataStr}T${horaStr}:00`,
+    idFuncionario: funcionarioId,
+    idServicos: estado.servicos.map(s => s.id)
+  };
 
-  setTexto(dom.sucNome, nome);
-  dom.sucesso.classList.add('active');
+  try {
+    const res = await fetch(`${API_BASE}/agendamentos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error?.error?.message || `Erro ao agendar (${res.status})`);
+    }
+
+    const response = await res.json();
+    if (response?.data) {
+      // Sucesso!
+      dom.panels.forEach(p => p.classList.remove('active'));
+      setVisibilidade(dom.steps, false);
+      setVisibilidade(dom.stepTitle, false);
+      setVisibilidade(dom.stepTag, false);
+
+      setTexto(dom.sucNome, nome);
+      dom.sucesso.classList.add('active');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      throw new Error('Resposta inválida do servidor');
+    }
+  } catch (err) {
+    console.error('Erro ao confirmar agendamento:', err);
+    alert(`Erro ao agendar: ${err.message}`);
+  }
 }

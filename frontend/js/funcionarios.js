@@ -1,5 +1,5 @@
 
-const API_BASE = '/fake-api';
+const API_BASE = '/api';
 
 function uid() {
   try { return crypto.randomUUID(); } catch { return Date.now().toString(); }
