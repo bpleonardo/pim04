@@ -31,6 +31,9 @@ namespace api
             builder.Services.AddScoped<Repositories.HorariosRepository>();
             builder.Services.AddScoped<Services.HorariosService>();
 
+            builder.Services.AddScoped<Repositories.AgendamentosRepository>();
+            builder.Services.AddScoped<Services.AgendamentosService>();
+
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();

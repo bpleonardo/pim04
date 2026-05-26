@@ -3,6 +3,12 @@ using api.Utilities;
 
 namespace api.DTOs
 {
+    public readonly struct MinClienteDTO(string nome, string telefone)
+    {
+        public string Nome { get; init; } = nome;
+        public string Telefone { get; init; } = telefone;
+    }
+
     public struct ClienteDTO(
         Guid id,
         string nome,

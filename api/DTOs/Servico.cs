@@ -2,12 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs
 {
-    public struct ServicoDTO(Guid id, string nome, string? descricao, double preco)
+    public readonly struct ServicoDTO(Guid id, string nome, string? descricao, double preco)
     {
-        public Guid Id = id;
-        public string Nome = nome;
-        public string? Descricao = descricao;
-        public double Preco = preco;
+        public Guid Id { get; init; } = id;
+        public string Nome { get; init; } = nome;
+        public string? Descricao { get; init; } = descricao;
+        public double Preco { get; init; } = preco;
     }
 
     public struct ServicoCreateDTO

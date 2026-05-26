@@ -75,5 +75,37 @@ namespace api.Utilities
             FROM slots
             ORDER BY hora;";
         #endregion
+
+        #region Queries de Agendamento
+        public const string QUERY_AGENDAMENTOS_BY_DATE =
+            @"
+            SELECT
+                a.id AS id_agendamento,
+                a.dt_agendamento,
+                a.status,
+                a.total,
+                c.nome AS cliente_nome,
+                c.telefone AS cliente_telefone,
+                f.id AS funcionario_id,
+                f.nome AS funcionario_nome
+            FROM tb_agendamento a
+            INNER JOIN tb_cliente c ON a.id_cliente = c.id
+            INNER JOIN tb_funcionario f ON a.id_funcionario = f.id
+            WHERE (a.dt_agendamento AT TIME ZONE 'America/Sao_Paulo')::date = $1::date
+            ORDER BY a.dt_agendamento;
+            ";
+
+        public const string QUERY_SERVICOS_BY_AGENDAMENTO =
+            @"
+            SELECT
+                s.id,
+                s.nome,
+                s.descricao,
+                s.valor
+            FROM tb_servico_realizado sr
+            INNER JOIN tb_servico s ON sr.id_servico = s.id
+            WHERE sr.id_agendamento = $1;
+            ";
+        #endregion
     }
 }
