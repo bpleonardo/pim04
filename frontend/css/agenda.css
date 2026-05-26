@@ -1,0 +1,492 @@
+/* AGENDA — Estilos exclusivos da tela de controle de atendimentos */
+
+.agenda-body {
+  background: var(--black);
+}
+
+.agenda-shell {
+  min-height: 100vh;
+}
+
+.agenda-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 220px;
+  background: var(--dark);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  z-index: 1030;
+}
+
+.sidebar-brand {
+  margin-bottom: 2rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid transparent;
+  border-radius: 0 0.25rem 0.25rem 0;
+  color: var(--muted);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.sidebar-link:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sidebar-link.active {
+  color: var(--gold);
+  background: var(--gold-dim);
+  border-left-color: var(--gold);
+}
+
+.agenda-main {
+  margin-left: 220px;
+  min-height: 100vh;
+}
+
+.agenda-topbar {
+  position: fixed;
+  top: 0;
+  left: 220px;
+  right: 0;
+  height: 64px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--black);
+  border-bottom: 1px solid var(--border);
+  z-index: 1020;
+}
+
+.menu-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+}
+
+.menu-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 999px;
+}
+
+.topbar-title {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-name {
+  color: var(--muted);
+}
+
+.profile-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold-dim);
+  color: var(--gold);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  font-weight: 700;
+}
+
+.agenda-content {
+  padding: 104px 32px 40px;
+}
+
+.section-tag {
+  color: var(--gold);
+  letter-spacing: 0.22rem;
+  font-size: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+.current-date {
+  color: var(--muted);
+}
+
+.current-date-centered {
+  min-width: 19rem;
+  text-align: center;
+}
+
+.date-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.date-nav-btn,
+.status-filter {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.date-nav-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.25rem;
+}
+
+.date-nav-btn:hover,
+.status-filter:hover,
+.appointment-card:hover {
+  border-color: var(--gold);
+}
+
+.status-filter {
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+}
+
+.status-filter.active {
+  color: var(--gold);
+  border-color: rgba(201, 168, 76, 0.35);
+  background: var(--gold-dim);
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.appointment-card {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 0.25rem;
+  padding: 1rem 1.25rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+  transition: border-color 0.2s, transform 0.2s, background-color 0.2s;
+}
+
+.appointment-card:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.appointment-time {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--gold);
+  min-width: 5.25rem;
+  line-height: 1;
+}
+
+.appointment-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+}
+
+.appointment-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.appointment-client {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.appointment-service {
+  color: var(--muted);
+  display: block;
+}
+
+.appointment-price {
+  color: var(--text);
+  font-weight: 700;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.appointment-status {
+  margin-left: 1rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background: var(--gold-dim);
+  color: var(--gold);
+  border-color: rgba(201, 168, 76, 0.3);
+}
+
+.status-done {
+  background: rgba(76, 175, 125, 0.12);
+  color: var(--success);
+  border-color: rgba(76, 175, 125, 0.25);
+}
+
+.status-canceled {
+  background: rgba(224, 82, 82, 0.12);
+  color: var(--danger);
+  border-color: rgba(224, 82, 82, 0.25);
+}
+
+.empty-state {
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--muted);
+  padding: 1.5rem;
+  text-align: center;
+  border-radius: 0.25rem;
+}
+
+.agenda-backdrop {
+  display: none;
+}
+
+.appointment-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1090;
+}
+
+.appointment-modal.open {
+  display: block;
+}
+
+.appointment-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.appointment-modal-dialog {
+  position: relative;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.appointment-modal-card {
+  width: min(100%, 34rem);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
+}
+
+.modal-header-custom,
+.modal-footer-custom {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-header-custom {
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title-custom {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+}
+
+.modal-close-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.modal-body-custom {
+  padding: 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.modal-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 0.75rem;
+}
+
+.modal-detail:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.modal-detail-label {
+  color: var(--muted);
+}
+
+.modal-detail-value {
+  font-weight: 600;
+  text-align: right;
+}
+
+.modal-footer-custom {
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  border-radius: 0.25rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+
+.modal-btn-cancel {
+  background: transparent;
+  color: var(--danger);
+  border-color: rgba(224, 82, 82, 0.35);
+}
+
+.modal-btn-complete {
+  background: var(--success);
+  color: var(--black);
+}
+
+@media (max-width: 900px) {
+  .agenda-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .agenda-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .agenda-main {
+    margin-left: 0;
+  }
+
+  .agenda-topbar {
+    left: 0;
+    padding: 0 1rem;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .agenda-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 1025;
+  }
+
+  .agenda-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .agenda-content {
+    padding: 96px 1rem 32px;
+  }
+
+  .current-date-centered {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .date-navigation {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .appointment-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .appointment-divider {
+    display: none;
+  }
+
+  .appointment-price,
+  .appointment-status {
+    margin-left: 0;
+  }
+
+  .appointment-status {
+    width: 100%;
+  }
+
+  .status-badge {
+    width: 100%;
+  }
+}
