@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Navalha & Estilo — Clientes</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="css/global.css" />
+    <link rel="stylesheet" href="css/clientes.css" />
+  </head>
+  <body class="clientes-body">
+    <div class="clientes-shell">
+      <aside class="clientes-sidebar" id="sidebar" aria-label="Navegação principal">
+        <a class="sidebar-brand logo" href="dashboard.html" aria-label="Navalha e Estilo, Dashboard">
+          <span class="logo-name">Navalha<span>&</span>Estilo</span>
+          <span class="logo-sub d-block">Barbearia</span>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Menu do sistema">
+          <a class="sidebar-link" href="dashboard.html">📊 Dashboard</a>
+          <a class="sidebar-link" href="agenda.html">📅 Agenda do dia</a>
+          <a class="sidebar-link active" href="clientes.html" aria-current="page">👥 Clientes</a>
+          <a class="sidebar-link" href="em-desenvolvimento.html">✂ Serviços</a>
+          <a class="sidebar-link" href="em-desenvolvimento.html">👤 Funcionários</a>
+          <a class="sidebar-link" href="financeiro.html">💰 Financeiro</a>
+          <a class="sidebar-link" href="login.html">🚪 Sair</a>
+        </nav>
+      </aside>
+
+      <div class="clientes-backdrop" id="backdrop" hidden></div>
+
+      <div class="clientes-main">
+        <header class="clientes-topbar">
+          <button class="menu-toggle" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <div class="topbar-title">Clientes</div>
+
+          <div class="profile-chip" aria-label="Perfil logado">
+            <span class="profile-name">Gerente</span>
+            <span class="profile-avatar" aria-hidden="true">G</span>
+          </div>
+        </header>
+
+        <main class="clientes-content">
+          <section class="page-heading d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
+            <div>
+              <span class="section-tag d-block text-uppercase">Cadastro e gerenciamento</span>
+              <h1 class="page-title mb-0">Clientes</h1>
+            </div>
+          </section>
+
+          <section class="actions-bar mb-4">
+            <div class="search-field">
+              <input class="form-control clientes-search" id="searchInput" type="search" placeholder="Buscar por nome ou telefone..." autocomplete="off" />
+            </div>
+            <button class="btn btn-new-client text-uppercase" id="newClientButton" type="button">Novo Cliente</button>
+          </section>
+
+          <section class="table-card panel-card">
+            <div class="table-responsive clientes-table-wrap">
+              <table class="table clientes-table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Telefone</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Último agendamento</th>
+                    <th scope="col">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="clientesTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="clients-modal" id="clientModal" aria-hidden="true" role="dialog" aria-labelledby="clientModalTitle">
+      <div class="clients-modal-backdrop" data-close-modal="true"></div>
+      <div class="clients-modal-dialog" role="document">
+        <div class="clients-modal-card">
+          <div class="clients-modal-header">
+            <h2 class="clients-modal-title" id="clientModalTitle">Novo Cliente</h2>
+            <button class="modal-close-btn" type="button" data-close-modal="true" aria-label="Fechar modal">×</button>
+          </div>
+          <form class="clients-modal-body" id="clientForm" novalidate>
+            <input type="hidden" id="clientId" />
+            <div class="field-block">
+              <label class="form-label small text-uppercase" for="clientName">Nome completo*</label>
+              <input class="form-control" type="text" id="clientName" />
+              <div class="error-msg" id="clientNameError">Preencha o nome</div>
+            </div>
+            <div class="field-block">
+              <label class="form-label small text-uppercase" for="clientPhone">Telefone*</label>
+              <input class="form-control" type="tel" id="clientPhone" maxlength="15" />
+              <div class="error-msg" id="clientPhoneError">Informe um telefone válido</div>
+            </div>
+            <div class="field-block">
+              <label class="form-label small text-uppercase" for="clientEmail">E-mail (opcional)</label>
+              <input class="form-control" type="email" id="clientEmail" />
+            </div>
+            <div class="field-block">
+              <label class="form-label small text-uppercase" for="clientCpf">CPF (opcional)</label>
+              <input class="form-control" type="text" id="clientCpf" />
+            </div>
+            <div class="field-block">
+              <label class="form-label small text-uppercase" for="clientBirth">Data de nascimento (opcional)</label>
+              <input class="form-control" type="date" id="clientBirth" />
+            </div>
+          </form>
+          <div class="clients-modal-footer" id="clientModalFooter">
+            <button class="modal-btn modal-btn-cancel" type="button" data-close-modal="true">Cancelar</button>
+            <button class="modal-btn modal-btn-save" type="submit" form="clientForm">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="history-modal" id="historyModal" aria-hidden="true" role="dialog" aria-labelledby="historyModalTitle">
+      <div class="clients-modal-backdrop" data-close-history="true"></div>
+      <div class="clients-modal-dialog history-dialog" role="document">
+        <div class="clients-modal-card history-card">
+          <div class="clients-modal-header">
+            <h2 class="clients-modal-title" id="historyModalTitle">Histórico</h2>
+            <button class="modal-close-btn" type="button" data-close-history="true" aria-label="Fechar histórico">×</button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+          <div class="clients-modal-footer history-footer">
+            <button class="modal-btn modal-btn-save" type="button" data-close-history="true">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/clientes.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
