@@ -1,4 +1,5 @@
 {
   "inlineSql.formatting.dialect": "postgresql",
-  "inlineSql.validation.dialect": "postgresql"
+  "inlineSql.validation.dialect": "postgresql",
+  "inlineSql.detection.minKeywords": 3,
 }

@@ -15,6 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/18/docker
       - ./resources/database/schema.sql:/docker-entrypoint-initdb.d/01-init-schema.sql
       - ./resources/database/test_seed.sql:/docker-entrypoint-initdb.d/02-seed-data.sql
+  redis:
+    image: redis:latest
+    env_file:
+      - ./.env
+    restart: unless-stopped
   nginx:
     image: nginx:latest
     ports:

@@ -1,4 +1,5 @@
 using Npgsql;
+using StackExchange.Redis;
 using static api.Utilities.Functions;
 
 namespace api
@@ -9,11 +10,16 @@ namespace api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            var dbConnString = GetConnectionString(builder);
+            var dbConnString = GetDbConnectionString(builder);
 
             builder.Services.AddSingleton(sp =>
             {
                 return NpgsqlDataSource.Create(dbConnString);
+            });
+
+            builder.Services.AddSingleton(sp =>
+            {
+                return ConnectionMultiplexer.Connect(GetRedisConnectionString(builder));
             });
 
             builder.Services.AddScoped<Repositories.ServicosRepository>();
@@ -31,6 +37,14 @@ namespace api
             builder.Services.AddOpenApi();
 
             var app = builder.Build();
+
+            app.UseWhen(
+                context => context.Request.Headers.ContainsKey("Nonce"),
+                appBuilder =>
+                {
+                    appBuilder.UseMiddleware<Utilities.NonceMiddleware>();
+                }
+            );
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
