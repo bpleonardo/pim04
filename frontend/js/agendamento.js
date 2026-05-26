@@ -8,12 +8,46 @@ const estado = {
 // A partir deste dia (contando de hoje), a UI bloqueia horários por indisponibilidade.
 const DIAS_LIMITE_SEM_HORARIOS = 10;
 
+const API_BASE = '/api';
+
 // Dados que alimentam a interface sem repetir markup no HTML.
-const SERVICOS = [
+let SERVICOS = [
   { nome: 'Cabelo', preco: 35, icone: '✂' },
   { nome: 'Sobrancelha', preco: 15, icone: '🪒' },
   { nome: 'Barba', preco: 25, icone: '🧔' },
 ];
+
+function iconeServico(nome) {
+  const normalizado = nome.toLowerCase();
+
+  if (normalizado.includes('sobrancelha')) return '🪒';
+  if (normalizado.includes('barba')) return '🧔';
+  return '✂';
+}
+
+async function carregarServicosDaApi() {
+  try {
+    const response = await fetch(`${API_BASE}/servicos`);
+
+    if (!response.ok) {
+      throw new Error(`Falha ao carregar serviços (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const data = Array.isArray(payload?.data) ? payload.data : [];
+
+    if (data.length) {
+      SERVICOS = data.map((servico) => ({
+        nome: servico.nome,
+        preco: Number(servico.preco) || 0,
+        icone: iconeServico(servico.nome),
+      }));
+      renderizarServicos();
+    }
+  } catch (error) {
+    console.warn('Não foi possível carregar serviços da API. Mantendo a lista local.', error);
+  }
+}
 
 const HORARIOS = [
   { hora: '08:00', disponivel: true },
@@ -382,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarHorarios();
   renderizarServicos();
   renderizarResumo();
+  void carregarServicosDaApi();
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
