@@ -1,73 +1,57 @@
+using api.Data;
 using api.DTOs;
+using api.Models;
 using api.Utilities;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
 {
-    public class FuncionariosRepository(NpgsqlDataSource ds)
+    /// <summary>
+    /// Repository for employee data operations using Entity Framework Core.
+    /// </summary>
+    public class FuncionariosRepository(AppDbContext context)
     {
-        private readonly NpgsqlDataSource _ds = ds;
+        private readonly AppDbContext _context = context;
 
+        /// <summary>
+        /// Retrieves all employees ordered by name.
+        /// </summary>
         public async Task<FuncionarioDTO[]> GetAll()
         {
-            var funcionarios = new List<FuncionarioDTO>();
-
-            await using var connection = await _ds.OpenConnectionAsync();
-
-            await using var command = new NpgsqlCommand(
-                @"
-                SELECT id, nome, COALESCE(telefone, ''), cpf, email, endereco 
-                FROM tb_funcionario
-                ORDER BY nome
-                ",
-                connection
-            );
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                funcionarios.Add(
-                    new FuncionarioDTO(
-                        reader.GetGuid(0),
-                        reader.GetString(1),
-                        reader.GetString(2),
-                        reader.IsDBNull(3) ? null : reader.GetString(3),
-                        reader.IsDBNull(4) ? null : reader.GetString(4),
-                        reader.GetString(5)
-                    )
-                );
-            }
-
-            return [.. funcionarios];
+            // Ordena por nome conforme contrato do repositório original
+            return await _context.Funcionarios
+                .AsNoTracking()
+                .OrderBy(f => f.Nome)
+                .Select(f => new FuncionarioDTO(
+                    f.Id,
+                    f.Nome,
+                    f.Telefone ?? string.Empty,
+                    f.CPF,
+                    f.Email,
+                    f.Endereco
+                ))
+                .ToArrayAsync();
         }
 
+        /// <summary>
+        /// Retrieves an employee by their unique identifier.
+        /// </summary>
         public async Task<Maybe<FuncionarioDTO>> GetOne(Guid id)
         {
-            await using var connection = await _ds.OpenConnectionAsync();
+            var funcionario = await _context.Funcionarios
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Id == id);
 
-            await using var command = new NpgsqlCommand(
-                @"
-                SELECT id, nome, COALESCE(telefone, ''), cpf, email, endereco 
-                FROM tb_funcionario
-                WHERE id = $1
-                ",
-                connection
-            );
-            command.Parameters.AddWithValue(id);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            if (funcionario != null)
             {
                 return new Maybe<FuncionarioDTO>(
                     new FuncionarioDTO(
-                        reader.GetGuid(0),
-                        reader.GetString(1),
-                        reader.GetString(2),
-                        reader.IsDBNull(3) ? null : reader.GetString(3),
-                        reader.IsDBNull(4) ? null : reader.GetString(4),
-                        reader.GetString(5)
+                        funcionario.Id,
+                        funcionario.Nome,
+                        funcionario.Telefone ?? string.Empty,
+                        funcionario.CPF,
+                        funcionario.Email,
+                        funcionario.Endereco
                     )
                 );
             }
@@ -75,26 +59,23 @@ namespace api.Repositories
             return new Maybe<FuncionarioDTO>(ErrorCodes.NotFound);
         }
 
+        /// <summary>
+        /// Creates a new employee.
+        /// </summary>
         public async Task<bool> CreateOne(FuncionarioDTO dto)
         {
-            await using var connection = await _ds.OpenConnectionAsync();
-
-            await using var command = new NpgsqlCommand(
-                @"
-                INSERT INTO tb_funcionario (id, nome, telefone, cpf, email, endereco)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                ",
-                connection
+            var entity = new Funcionario(
+                dto.Id,
+                dto.Nome,
+                dto.Telefone,
+                dto.CPF ?? string.Empty,
+                dto.Email ?? string.Empty,
+                dto.Endereco
             );
 
-            command.Parameters.AddWithValue(dto.Id);
-            command.Parameters.AddWithValue(dto.Nome);
-            command.Parameters.AddWithValue((object?)dto.Telefone ?? DBNull.Value);
-            command.Parameters.AddWithValue((object?)dto.CPF ?? DBNull.Value);
-            command.Parameters.AddWithValue((object?)dto.Email ?? DBNull.Value);
-            command.Parameters.AddWithValue(dto.Endereco);
+            await _context.Funcionarios.AddAsync(entity);
+            await _context.SaveChangesAsync();
 
-            await command.ExecuteNonQueryAsync();
             return true;
         }
     }

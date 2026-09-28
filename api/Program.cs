@@ -1,4 +1,5 @@
-using Npgsql;
+using api.Data;
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using static api.Utilities.Functions;
 
@@ -12,9 +13,10 @@ namespace api
 
             var dbConnString = GetDbConnectionString(builder);
 
-            builder.Services.AddSingleton(sp =>
+            // Registro do DbContext do Entity Framework Core com provedor PostgreSQL
+            builder.Services.AddDbContext<AppDbContext>(options =>
             {
-                return NpgsqlDataSource.Create(dbConnString);
+                options.UseNpgsql(dbConnString);
             });
 
             builder.Services.AddSingleton(sp =>

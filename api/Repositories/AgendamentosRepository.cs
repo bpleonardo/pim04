@@ -1,110 +1,80 @@
+using api.Data;
 using api.DTOs;
+using api.Models;
 using api.Utilities;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
 {
-    public class AgendamentosRepository(NpgsqlDataSource ds)
+    /// <summary>
+    /// Repository for appointment data operations using Entity Framework Core.
+    /// </summary>
+    public class AgendamentosRepository(AppDbContext context)
     {
-        private readonly NpgsqlDataSource _ds = ds;
+        private readonly AppDbContext _context = context;
 
-        private async Task<ServicoDTO[]> GetServicosByAgendamentoId(Guid agendamentoId)
-        {
-            var servicos = new List<ServicoDTO>();
-
-            await using var connection = await _ds.OpenConnectionAsync();
-
-            await using var command = new NpgsqlCommand(
-                Queries.QUERY_SERVICOS_BY_AGENDAMENTO,
-                connection
-            );
-            command.Parameters.AddWithValue(agendamentoId);
-
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var id = reader.GetGuid(0);
-                var nome = reader.GetString(1);
-                var descricao = reader.IsDBNull(2) ? null : reader.GetString(2);
-                var preco = reader.GetDouble(3);
-
-                servicos.Add(new ServicoDTO(id, nome, descricao, preco));
-            }
-            return [.. servicos];
-        }
-
+        /// <summary>
+        /// Retrieves all appointments for a given date in the America/Sao_Paulo timezone.
+        /// </summary>
         public async Task<MinAgendamentoDTO[]> GetByDate(DateOnly date)
         {
-            var agendamentos = new List<MinAgendamentoDTO>();
+            // Converte a data local de São Paulo para o intervalo correspondente em UTC
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            var startLocal = date.ToDateTime(new TimeOnly(0, 0, 0), DateTimeKind.Unspecified);
+            var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
+            var endUtc = startUtc.AddDays(1);
 
-            await using var connection = await _ds.OpenConnectionAsync();
+            // Carrega agendamentos e relacionamentos em uma única consulta, eliminando o problema de N+1
+            var appointments = await _context.Agendamentos
+                .AsNoTracking()
+                .Include(a => a.Cliente)
+                .Include(a => a.Funcionario)
+                .Include(a => a.ServicosRealizados)
+                    .ThenInclude(sr => sr.Servico)
+                .Where(a => a.DataAgendamento >= startUtc && a.DataAgendamento < endUtc)
+                .OrderBy(a => a.DataAgendamento)
+                .ToListAsync();
 
-            await using var command = new NpgsqlCommand(
-                Queries.QUERY_AGENDAMENTOS_BY_DATE,
-                connection
-            );
-            command.Parameters.AddWithValue(date);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                var id = reader.GetGuid(0);
-                var data = reader.GetDateTime(1);
-                var status = reader.GetString(2);
-                var total = reader.GetDouble(3);
-                var nomeCliente = reader.GetString(4);
-                var telefoneCliente = reader.GetString(5);
-                var idFuncionario = reader.GetGuid(6);
-                var nomeFuncionario = reader.GetString(7);
-
-                var servicos = await GetServicosByAgendamentoId(id);
-
-                agendamentos.Add(
-                    new MinAgendamentoDTO(
-                        id,
-                        data,
-                        status,
-                        total,
-                        servicos,
-                        new MinClienteDTO(nomeCliente, telefoneCliente),
-                        new MinFuncionarioDTO(idFuncionario, nomeFuncionario)
-                    )
-                );
-            }
-
-            return [.. agendamentos];
+            return appointments.Select(a => new MinAgendamentoDTO(
+                a.Id,
+                a.DataAgendamento,
+                a.Status,
+                a.ValorTotal ?? 0,
+                a.ServicosRealizados
+                    .Select(sr => new ServicoDTO(
+                        sr.Servico.Id,
+                        sr.Servico.Nome,
+                        sr.Servico.Descricao,
+                        sr.Servico.Preco
+                    ))
+                    .ToArray(),
+                new MinClienteDTO(a.Cliente.Nome, a.Cliente.Telefone ?? string.Empty),
+                new MinFuncionarioDTO(a.Funcionario.Id, a.Funcionario.Nome)
+            )).ToArray();
         }
 
         /// <summary>
-        /// Check if a given horário slot is available for a specific funcionário on a given date.
+        /// Checks if a time slot is available for a specific employee.
         /// </summary>
         public async Task<bool> IsSlotAvailable(Guid idFuncionario, DateTime dateTime)
         {
-            await using var connection = await _ds.OpenConnectionAsync();
+            var dateTimeUtc = dateTime.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+                : dateTime.ToUniversalTime();
 
-            // Convert to Brazilian time for comparison
-            await using var command = new NpgsqlCommand(
-                @"
-                SELECT COUNT(*) FROM tb_agendamento
-                WHERE id_funcionario = $1
-                AND (dt_agendamento AT TIME ZONE 'America/Sao_Paulo')::date = $2::date
-                AND to_char(dt_agendamento AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') = $3
-                AND status = 'agendado'
-                ",
-                connection
-            );
+            // Retorna true se não houver agendamento ativo no mesmo horário para o funcionário
+            var isBusy = await _context.Agendamentos
+                .AnyAsync(a =>
+                    a.IdFuncionario == idFuncionario
+                    && a.DataAgendamento == dateTimeUtc
+                    && a.Status == "agendado"
+                );
 
-            command.Parameters.AddWithValue(idFuncionario);
-            command.Parameters.AddWithValue(dateTime.Date);
-            command.Parameters.AddWithValue(dateTime.ToString("HH:mm"));
-
-            var result = (long?)await command.ExecuteScalarAsync();
-            return result.HasValue && result.Value == 0;
+            return !isBusy;
         }
 
         /// <summary>
-        /// Create a new appointment and related service records.
+        /// Creates a new appointment and its associated services in a single transaction.
         /// </summary>
         public async Task<Maybe<Guid>> CreateOne(
             Guid idCliente,
@@ -114,152 +84,107 @@ namespace api.Repositories
             Guid[] idServicos
         )
         {
-            await using var connection = await _ds.OpenConnectionAsync();
-            await using var transaction = await connection.BeginTransactionAsync();
+            var servicos = await _context.Servicos
+                .Where(s => idServicos.Contains(s.Id))
+                .ToListAsync();
+
+            // Valida se todos os serviços existem no banco
+            if (servicos.Count != idServicos.Distinct().Count())
+            {
+                return new Maybe<Guid>(ErrorCodes.NotFound);
+            }
+
+            var agendamentoId = Guid.NewGuid();
+            var agendamento = new Agendamento
+            {
+                Id = agendamentoId,
+                IdCliente = idCliente,
+                IdFuncionario = idFuncionario,
+                DataAgendamento = dataAgendamento.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(dataAgendamento, DateTimeKind.Utc)
+                    : dataAgendamento.ToUniversalTime(),
+                Status = "agendado",
+                ValorTotal = total,
+            };
+
+            foreach (var idServico in idServicos)
+            {
+                var servico = servicos.First(s => s.Id == idServico);
+                agendamento.ServicosRealizados.Add(new ServicoRealizado
+                {
+                    IdAgendamento = agendamentoId,
+                    IdServico = idServico,
+                    Valor = servico.Preco,
+                });
+            }
 
             try
             {
-                var agendamentoId = Guid.NewGuid();
-
-                // Insert agendamento
-                await using var cmdAgendamento = new NpgsqlCommand(
-                    @"
-                    INSERT INTO tb_agendamento (id, id_cliente, id_funcionario, dt_agendamento, status, total)
-                    VALUES ($1, $2, $3, $4, 'agendado', $5)
-                    ",
-                    connection,
-                    transaction
-                );
-                cmdAgendamento.Parameters.AddWithValue(agendamentoId);
-                cmdAgendamento.Parameters.AddWithValue(idCliente);
-                cmdAgendamento.Parameters.AddWithValue(idFuncionario);
-                cmdAgendamento.Parameters.AddWithValue(dataAgendamento);
-                cmdAgendamento.Parameters.AddWithValue(total);
-
-                await cmdAgendamento.ExecuteNonQueryAsync();
-
-                // Insert servicos_realizados for each service
-                foreach (var idServico in idServicos)
-                {
-                    // Get service price
-                    await using var cmdGetPrice = new NpgsqlCommand(
-                        "SELECT valor FROM tb_servico WHERE id = $1",
-                        connection,
-                        transaction
-                    );
-                    cmdGetPrice.Parameters.AddWithValue(idServico);
-
-                    var preco = await cmdGetPrice.ExecuteScalarAsync() as decimal?;
-                    if (!preco.HasValue)
-                        throw new Exception($"Serviço não encontrado: {idServico}");
-
-                    await using var cmdServico = new NpgsqlCommand(
-                        @"
-                        INSERT INTO tb_servico_realizado (id_agendamento, id_servico, valor)
-                        VALUES ($1, $2, $3)
-                        ",
-                        connection,
-                        transaction
-                    );
-                    cmdServico.Parameters.AddWithValue(agendamentoId);
-                    cmdServico.Parameters.AddWithValue(idServico);
-                    cmdServico.Parameters.AddWithValue((double)preco.Value);
-
-                    await cmdServico.ExecuteNonQueryAsync();
-                }
-
-                await transaction.CommitAsync();
+                await _context.Agendamentos.AddAsync(agendamento);
+                await _context.SaveChangesAsync();
                 return new Maybe<Guid>(agendamentoId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                await transaction.RollbackAsync();
                 return new Maybe<Guid>(ErrorCodes.NotFound);
             }
         }
 
         /// <summary>
-        /// Update appointment status.
+        /// Updates the status of an existing appointment.
         /// </summary>
         public async Task<Maybe<bool>> UpdateStatus(Guid agendamentoId, string novoStatus)
         {
-            await using var connection = await _ds.OpenConnectionAsync();
-
-            await using var command = new NpgsqlCommand(
-                @"
-                UPDATE tb_agendamento 
-                SET status = $2
-                WHERE id = $1
-                ",
-                connection
-            );
-            command.Parameters.AddWithValue(agendamentoId);
-            command.Parameters.AddWithValue(novoStatus);
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-
-            if (affectedRows == 0)
+            var agendamento = await _context.Agendamentos.FindAsync(agendamentoId);
+            if (agendamento == null)
+            {
                 return new Maybe<bool>(ErrorCodes.NotFound);
+            }
+
+            agendamento.Status = novoStatus;
+            await _context.SaveChangesAsync();
 
             return new Maybe<bool>(true);
         }
 
         /// <summary>
-        /// Get a single appointment by ID with all details.
+        /// Retrieves a single appointment by identifier with all client, employee, and service details.
         /// </summary>
         public async Task<Maybe<MinAgendamentoDTO>> GetOne(Guid agendamentoId)
         {
-            await using var connection = await _ds.OpenConnectionAsync();
+            var a = await _context.Agendamentos
+                .AsNoTracking()
+                .Include(a => a.Cliente)
+                .Include(a => a.Funcionario)
+                .Include(a => a.ServicosRealizados)
+                    .ThenInclude(sr => sr.Servico)
+                .FirstOrDefaultAsync(a => a.Id == agendamentoId);
 
-            await using var command = new NpgsqlCommand(
-                @"
-                SELECT
-                    a.id,
-                    a.dt_agendamento,
-                    a.status,
-                    a.total,
-                    c.nome AS cliente_nome,
-                    c.telefone AS cliente_telefone,
-                    f.id AS funcionario_id,
-                    f.nome AS funcionario_nome
-                FROM tb_agendamento a
-                INNER JOIN tb_cliente c ON a.id_cliente = c.id
-                INNER JOIN tb_funcionario f ON a.id_funcionario = f.id
-                WHERE a.id = $1
-                ",
-                connection
-            );
-            command.Parameters.AddWithValue(agendamentoId);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            if (a == null)
             {
-                var id = reader.GetGuid(0);
-                var data = reader.GetDateTime(1);
-                var status = reader.GetString(2);
-                var total = reader.GetDouble(3);
-                var nomeCliente = reader.GetString(4);
-                var telefoneCliente = reader.GetString(5);
-                var idFuncionario = reader.GetGuid(6);
-                var nomeFuncionario = reader.GetString(7);
-
-                var servicos = await GetServicosByAgendamentoId(id);
-
-                return new Maybe<MinAgendamentoDTO>(
-                    new MinAgendamentoDTO(
-                        id,
-                        data,
-                        status,
-                        total,
-                        servicos,
-                        new MinClienteDTO(nomeCliente, telefoneCliente),
-                        new MinFuncionarioDTO(idFuncionario, nomeFuncionario)
-                    )
-                );
+                return new Maybe<MinAgendamentoDTO>(ErrorCodes.NotFound);
             }
 
-            return new Maybe<MinAgendamentoDTO>(ErrorCodes.NotFound);
+            var servicos = a.ServicosRealizados
+                .Select(sr => new ServicoDTO(
+                    sr.Servico.Id,
+                    sr.Servico.Nome,
+                    sr.Servico.Descricao,
+                    sr.Servico.Preco
+                ))
+                .ToArray();
+
+            var dto = new MinAgendamentoDTO(
+                a.Id,
+                a.DataAgendamento,
+                a.Status,
+                a.ValorTotal ?? 0,
+                servicos,
+                new MinClienteDTO(a.Cliente.Nome, a.Cliente.Telefone ?? string.Empty),
+                new MinFuncionarioDTO(a.Funcionario.Id, a.Funcionario.Nome)
+            );
+
+            return new Maybe<MinAgendamentoDTO>(dto);
         }
     }
 }

@@ -1,39 +1,70 @@
+using api.Data;
 using api.DTOs;
-using api.Utilities;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
 {
-    public class HorariosRepository(NpgsqlDataSource ds)
+    /// <summary>
+    /// Repository for scheduling availability and time slot calculations using Entity Framework Core.
+    /// </summary>
+    public class HorariosRepository(AppDbContext context)
     {
-        private readonly NpgsqlDataSource _ds = ds;
+        private readonly AppDbContext _context = context;
 
+        /// <summary>
+        /// Retrieves available 30-minute time slots for a given date and operating hour range.
+        /// </summary>
         public async Task<List<HorarioDTO>> GetHorariosDisponiveis(
             DateOnly date,
             TimeOnly startTime,
             TimeOnly endTime
         )
         {
+            // Determina a janela do dia no fuso horário de São Paulo
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            var startLocal = date.ToDateTime(new TimeOnly(0, 0, 0), DateTimeKind.Unspecified);
+            var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
+            var endUtc = startUtc.AddDays(1);
+
+            // Contagem total de funcionários cadastrados
+            var totalFuncionarios = await _context.Funcionarios.CountAsync();
+
+            // Obtém agendamentos do dia para conferir funcionários ocupados em cada slot
+            var busyAppointments = await _context.Agendamentos
+                .AsNoTracking()
+                .Where(a =>
+                    a.Status == "agendado"
+                    && a.DataAgendamento >= startUtc
+                    && a.DataAgendamento < endUtc
+                )
+                .Select(a => new { a.IdFuncionario, a.DataAgendamento })
+                .ToListAsync();
+
             var horarios = new List<HorarioDTO>();
+            var current = startTime;
 
-            await using var connection = await _ds.OpenConnectionAsync();
-
-            await using var command = new NpgsqlCommand(
-                Queries.GET_HORARIOS_DISPONIVEIS,
-                connection
-            );
-            command.Parameters.AddWithValue("start_date", date.ToDateTime(startTime));
-            command.Parameters.AddWithValue("end_date", date.ToDateTime(endTime));
-            command.Parameters.AddWithValue("date", date);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+            while (current <= endTime)
             {
-                var slot = reader.GetString(0);
-                var available = reader.GetBoolean(1);
+                var slotStr = current.ToString("HH:mm");
+                var slotLocal = date.ToDateTime(current, DateTimeKind.Unspecified);
+                var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotLocal, tz);
 
-                horarios.Add(new HorarioDTO(slot, available));
+                // Slot está disponível se pelo menos um funcionário não estiver com agendamento ativo
+                var busyCount = busyAppointments
+                    .Where(a => a.DataAgendamento == slotUtc)
+                    .Select(a => a.IdFuncionario)
+                    .Distinct()
+                    .Count();
+
+                var isAvailable = totalFuncionarios > 0 && busyCount < totalFuncionarios;
+
+                horarios.Add(new HorarioDTO(slotStr, isAvailable));
+
+                if (current == TimeOnly.MaxValue || current.AddMinutes(30) < current)
+                {
+                    break;
+                }
+                current = current.AddMinutes(30);
             }
 
             return horarios;

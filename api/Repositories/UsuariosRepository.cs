@@ -1,46 +1,40 @@
-using api.DTOs;
+using api.Data;
 using api.Utilities;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
 {
-    public class UsuariosRepository(NpgsqlDataSource ds)
+    /// <summary>
+    /// Repository for user credentials and authentication operations using Entity Framework Core.
+    /// </summary>
+    public class UsuariosRepository(AppDbContext context)
     {
-        private readonly NpgsqlDataSource _ds = ds;
+        private readonly AppDbContext _context = context;
 
         /// <summary>
-        /// Find user by login and verify password (plain text for now; should use BCrypt in production).
-        /// Returns usuario with id_funcionario and associated funcionario data.
+        /// Finds a user by login and password, returning employee data if verified.
         /// </summary>
         public async Task<Maybe<(Guid IdFuncionario, string NomeFuncionario, string Login)>> GetByLoginAndPassword(
             string login,
             string senha
         )
         {
-            await using var connection = await _ds.OpenConnectionAsync();
+            // Busca o usuário e os dados do funcionário associado em uma única consulta
+            var user = await _context.Usuarios
+                .AsNoTracking()
+                .Include(u => u.Funcionario)
+                .Where(u => u.Login == login && u.Senha == senha)
+                .Select(u => new
+                {
+                    u.IdFuncionario,
+                    NomeFuncionario = u.Funcionario.Nome,
+                    u.Login
+                })
+                .FirstOrDefaultAsync();
 
-            await using var command = new NpgsqlCommand(
-                @"
-                SELECT u.id_funcionario, f.nome, u.login
-                FROM tb_usuario u
-                INNER JOIN tb_funcionario f ON u.id_funcionario = f.id
-                WHERE u.login = $1 AND u.senha = $2
-                LIMIT 1
-                ",
-                connection
-            );
-            command.Parameters.AddWithValue(login);
-            command.Parameters.AddWithValue(senha);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            if (user != null)
             {
-                var idFuncionario = reader.GetGuid(0);
-                var nomeFuncionario = reader.GetString(1);
-                var loginResult = reader.GetString(2);
-
-                return new Maybe<(Guid, string, string)>((idFuncionario, nomeFuncionario, loginResult));
+                return new Maybe<(Guid, string, string)>((user.IdFuncionario, user.NomeFuncionario, user.Login));
             }
 
             return new Maybe<(Guid, string, string)>(ErrorCodes.NotFound);
