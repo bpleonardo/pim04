@@ -1,0 +1,26 @@
+# Ambiente desenvolvimento
+# NÃO UTILIZAR EM PRODUÇÃO, AS VARIÁVEIS DE AMBIENTE ESTÃO EXPOSTAS
+# JUNTAMENTE COM AS PORTAS
+services:
+  backend:
+    ports:
+      - '8080:8080'
+    environment:
+      - DB_CONNECTION_STRING=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=postgres;Enlist=false
+      - REDIS_CONNECTION_STRING=redis,password=redis
+
+  postgres:
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+
+  redis:
+    ports:
+      - '6379:6379'
+    environment:
+      - REDIS_ARGS=--requirepass redis
+
+  nginx: !reset

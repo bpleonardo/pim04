@@ -1,0 +1,24 @@
+# Ambiente produção
+services:
+  backend:
+    ports: !reset
+    env_file:
+      - ./.env
+    restart: unless-stopped
+
+  postgres:
+    ports: !reset
+    env_file:
+      - ./.env
+    restart: unless-stopped
+
+  redis:
+    ports: !reset
+    env_file:
+      - ./.env
+    restart: unless-stopped
+
+  nginx:
+    ports:
+      - '80:80'
+    restart: unless-stopped

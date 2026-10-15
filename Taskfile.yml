@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  BUILD_ENV: dev
+  SUDO_CMD: '{{if eq OS "linux"}}sudo{{end}}'
+
+tasks:
+  "start:api":
+    desc: "Inicia a API"
+    cmds:
+      - cmd: echo "Iniciando a API ({{.BUILD_ENV}})."
+        silent: true
+
+      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml -f resources/docker/docker-compose.dev.yml up --build -d {{.CLI_ARGS}}'
+        if: '[ "{{.BUILD_ENV}}" = "dev" ]'
+
+      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml -f resources/docker/docker-compose.prod.yml up --build -d {{.CLI_ARGS}}'
+        if: '[ "{{.BUILD_ENV}}" = "prod" ]'
+  "stop:api":
+    desc: "Para a API"
+    cmds:
+      - cmd: echo "Parando a API ({{.BUILD_ENV}})."
+        silent: true
+
+      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml down {{.CLI_ARGS}}'
