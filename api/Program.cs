@@ -7,7 +7,7 @@ namespace api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +17,15 @@ namespace api
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(dbConnString);
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    options
+                        .UseSeeding((context, _) => DevSeeder.Seed((AppDbContext)context))
+                        .UseAsyncSeeding(
+                            (context, _, ct) => DevSeeder.SeedAsync((AppDbContext)context, ct)
+                        );
+                }
             });
 
             builder.Services.AddSingleton(sp =>
@@ -55,6 +64,12 @@ namespace api
 
             var app = builder.Build();
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                await db.Database.MigrateAsync();
+            }
+
             app.UseWhen(
                 context => context.Request.Headers.ContainsKey("Nonce"),
                 appBuilder =>
@@ -75,7 +90,7 @@ namespace api
 
             app.MapControllers();
 
-            app.Run();
+            await app.RunAsync();
         }
     }
 }
