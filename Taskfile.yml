@@ -21,7 +21,14 @@ tasks:
   "stop:api":
     desc: "Para a API"
     cmds:
-      - cmd: echo "Parando a API ({{.BUILD_ENV}})."
+      - cmd: echo "Parando a API."
         silent: true
 
       - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml down {{.CLI_ARGS}}'
+  "clear:api":
+    desc: "Limpa a API"
+    cmds:
+      - cmd: echo "Limpando a API."
+        silent: true
+
+      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml down --rmi all --volumes --remove-orphans {{.CLI_ARGS}}'
