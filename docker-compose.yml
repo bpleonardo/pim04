@@ -1,32 +1,22 @@
+# Ambiente base
 services:
   backend:
     build:
       context: ./api
       dockerfile: ./Dockerfile
-    env_file:
-      - ./.env
-    restart: unless-stopped
+    restart: no
   postgres:
     image: postgres:latest
-    env_file:
-      - ./.env
-    restart: unless-stopped
+    restart: no
     volumes:
       - postgres_data:/var/lib/postgresql/18/docker
-      - ./resources/database/schema.sql:/docker-entrypoint-initdb.d/01-init-schema.sql
-      - ./resources/database/test_seed.sql:/docker-entrypoint-initdb.d/02-seed-data.sql
   redis:
     image: redis:latest
-    env_file:
-      - ./.env
-    restart: unless-stopped
+    restart: no
   nginx:
     image: nginx:latest
-    ports:
-      - '80:80'
-    restart: unless-stopped
+    restart: no
     volumes:
-      - ./frontend:/usr/share/nginx/html
       - ./resources/nginx/default.conf:/etc/nginx/conf.d/default.conf
 volumes:
   postgres_data:
