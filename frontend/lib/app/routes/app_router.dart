@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../features/auth/presentation/login_page.dart';
+import 'package:barbearia_frontend/features/auth/presentation/login_page.dart';
 
 class AppRouter {
   static const login = '/login';

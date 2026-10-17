@@ -1,4 +1,4 @@
-import '../config/api_config.dart';
+import 'package:barbearia_frontend/core/config/api_config.dart';
 
 class ApiClient {
   const ApiClient();
