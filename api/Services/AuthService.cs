@@ -2,8 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using api.DTOs;
+using api.Exceptions;
 using api.Repositories;
-using api.Utilities;
 using Microsoft.IdentityModel.Tokens;
 
 namespace api.Services
@@ -13,20 +13,23 @@ namespace api.Services
         private readonly UsuariosRepository _repo = repo;
         private readonly IConfiguration _config = config;
 
-        public async Task<Maybe<LoginResponse>> AuthenticateAsync(LoginRequest request)
+        /// <summary>
+        /// Authenticates a user with login and password, returning authentication response or throwing UnauthorizedException.
+        /// </summary>
+        public async Task<LoginResponse> AuthenticateAsync(LoginRequest request)
         {
             var result = await _repo.GetByLoginAndPassword(request.Login, request.Senha);
 
-            if (!result.HasValue)
+            if (result == null)
             {
-                return new Maybe<LoginResponse>(ErrorCodes.NotFound);
+                throw new UnauthorizedException("Login ou senha inválidos.", "INVALID_CREDENTIALS");
             }
 
             var (idFuncionario, nomeFuncionario, login) = result.Value;
 
             var token = GenerateJwtToken(idFuncionario, login, nomeFuncionario);
 
-            var response = new LoginResponse
+            return new LoginResponse
             {
                 Token = token,
                 User = new AuthUser
@@ -36,8 +39,6 @@ namespace api.Services
                     Login = login,
                 }
             };
-
-            return new Maybe<LoginResponse>(response);
         }
 
         private string GenerateJwtToken(Guid userId, string login, string nome)

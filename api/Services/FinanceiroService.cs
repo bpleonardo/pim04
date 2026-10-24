@@ -1,4 +1,5 @@
 using api.DTOs;
+using api.Exceptions;
 using api.Repositories;
 
 namespace api.Services
@@ -7,8 +8,22 @@ namespace api.Services
     {
         private readonly AgendamentosRepository _agendamentosRepo = agendamentosRepo;
 
+        /// <summary>
+        /// Retrieves financial metrics and breakdown for the specified period.
+        /// </summary>
         public async Task<FinanceiroDTO> GetFinanceiro(string periodo, DateOnly? dataInicio = null, DateOnly? dataFim = null)
         {
+            var validPeriodos = new[] { "hoje", "semana", "mes", "personalizado" };
+            if (!validPeriodos.Contains(periodo))
+            {
+                throw new ValidationException("Período inválido. Use: hoje, semana, mes, personalizado", "INVALID_PERIOD");
+            }
+
+            if (periodo == "personalizado" && (!dataInicio.HasValue || !dataFim.HasValue))
+            {
+                throw new ValidationException("Para período personalizado, forneça dataInicio e dataFim", "MISSING_DATES");
+            }
+
             var appointments = periodo switch
             {
                 "hoje" => await _agendamentosRepo.GetByDate(DateOnly.FromDateTime(DateTime.Now)),

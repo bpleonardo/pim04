@@ -1,7 +1,7 @@
 using api.DTOs;
+using api.Exceptions;
 using api.Models;
 using api.Repositories;
-using api.Utilities;
 
 namespace api.Services
 {
@@ -9,24 +9,33 @@ namespace api.Services
     {
         private readonly FuncionariosRepository _repo = repo;
 
+        /// <summary>
+        /// Retrieves all employees.
+        /// </summary>
         public async Task<FuncionarioDTO[]> GetAll()
         {
             return await _repo.GetAll();
         }
 
-        public async Task<FuncionarioDTO?> GetOne(Guid id)
+        /// <summary>
+        /// Retrieves a single employee by id or throws ResourceNotFoundException.
+        /// </summary>
+        public async Task<FuncionarioDTO> GetOne(Guid id)
         {
-            var result = await _repo.GetOne(id);
+            var funcionario = await _repo.GetOne(id);
 
-            if (!result.HasValue)
+            if (funcionario is null)
             {
-                return null;
+                throw new ResourceNotFoundException("Funcionário não encontrado.");
             }
 
-            return result.Value;
+            return funcionario.Value;
         }
 
-        public async Task<Maybe<bool>> CreateOne(FuncionarioCreateDTO dto)
+        /// <summary>
+        /// Creates a new employee.
+        /// </summary>
+        public async Task CreateOne(FuncionarioCreateDTO dto)
         {
             var newFuncionario = new Funcionario(
                 null,
@@ -37,7 +46,7 @@ namespace api.Services
                 dto.Endereco
             );
 
-            var created = await _repo.CreateOne(
+            await _repo.CreateOne(
                 new FuncionarioDTO(
                     newFuncionario.Id,
                     newFuncionario.Nome,
@@ -47,14 +56,6 @@ namespace api.Services
                     newFuncionario.Endereco
                 )
             );
-
-            if (created)
-            {
-                return new Maybe<bool>(true);
-            }
-
-            // TODO: Better error handling
-            throw new Exception("Erro ao criar funcionário.");
         }
     }
 }

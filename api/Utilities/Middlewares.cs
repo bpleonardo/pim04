@@ -79,40 +79,47 @@ namespace api.Utilities
                 {
                     var originalBodyStream = context.Response.Body;
 
-                    using var memStream = new MemoryStream();
-                    context.Response.Body = memStream;
-
-                    await _next.Invoke(context);
-
-                    memStream.Seek(0, SeekOrigin.Begin);
-
-                    var responseBody = await new StreamReader(memStream).ReadToEndAsync();
-
-                    memStream.Seek(0, SeekOrigin.Begin);
-                    await memStream.CopyToAsync(originalBodyStream);
-                    context.Response.Body = originalBodyStream;
-
-                    if (ShouldCache(context.Response.StatusCode))
+                    try
                     {
-                        var response = new Response(
-                            statusCode: context.Response.StatusCode,
-                            body: responseBody,
-                            contentType: context.Response.ContentType
-                        );
+                        using var memStream = new MemoryStream();
+                        context.Response.Body = memStream;
 
-                        foreach (var header in context.Response.Headers)
+                        await _next.Invoke(context);
+
+                        memStream.Seek(0, SeekOrigin.Begin);
+
+                        var responseBody = await new StreamReader(memStream).ReadToEndAsync();
+
+                        memStream.Seek(0, SeekOrigin.Begin);
+                        await memStream.CopyToAsync(originalBodyStream);
+                        context.Response.Body = originalBodyStream;
+
+                        if (ShouldCache(context.Response.StatusCode))
                         {
-                            if (!EXCLUDED_HEADERS.Contains(header.Key) && header.Value.Count > 0)
-                            {
-                                response.Headers[header.Key] = header.Value!;
-                            }
-                        }
+                            var response = new Response(
+                                statusCode: context.Response.StatusCode,
+                                body: responseBody,
+                                contentType: context.Response.ContentType
+                            );
 
-                        await _redisDb.StringSetAsync(
-                            nonceKey,
-                            JsonSerializer.Serialize(response),
-                            TimeSpan.FromMinutes(10)
-                        );
+                            foreach (var header in context.Response.Headers)
+                            {
+                                if (!EXCLUDED_HEADERS.Contains(header.Key) && header.Value.Count > 0)
+                                {
+                                    response.Headers[header.Key] = header.Value!;
+                                }
+                            }
+
+                            await _redisDb.StringSetAsync(
+                                nonceKey,
+                                JsonSerializer.Serialize(response),
+                                TimeSpan.FromMinutes(10)
+                            );
+                        }
+                    }
+                    finally
+                    {
+                        context.Response.Body = originalBodyStream;
                     }
                 }
             }

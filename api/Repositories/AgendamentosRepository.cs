@@ -1,7 +1,7 @@
 using api.Data;
 using api.DTOs;
+using api.Exceptions;
 using api.Models;
-using api.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -76,7 +76,7 @@ namespace api.Repositories
         /// <summary>
         /// Creates a new appointment and its associated services in a single transaction.
         /// </summary>
-        public async Task<Maybe<Guid>> CreateOne(
+        public async Task<Guid> CreateOne(
             Guid idCliente,
             Guid idFuncionario,
             DateTime dataAgendamento,
@@ -91,7 +91,7 @@ namespace api.Repositories
             // Valida se todos os serviços existem no banco
             if (servicos.Count != idServicos.Distinct().Count())
             {
-                return new Maybe<Guid>(ErrorCodes.NotFound);
+                throw new ResourceNotFoundException("Um ou mais serviços informados não foram encontrados.");
             }
 
             var agendamentoId = Guid.NewGuid();
@@ -118,39 +118,33 @@ namespace api.Repositories
                 });
             }
 
-            try
-            {
-                await _context.Agendamentos.AddAsync(agendamento);
-                await _context.SaveChangesAsync();
-                return new Maybe<Guid>(agendamentoId);
-            }
-            catch (Exception)
-            {
-                return new Maybe<Guid>(ErrorCodes.NotFound);
-            }
+            await _context.Agendamentos.AddAsync(agendamento);
+            await _context.SaveChangesAsync();
+
+            return agendamentoId;
         }
 
         /// <summary>
-        /// Updates the status of an existing appointment.
+        /// Updates the status of an existing appointment. Returns false if not found.
         /// </summary>
-        public async Task<Maybe<bool>> UpdateStatus(Guid agendamentoId, string novoStatus)
+        public async Task<bool> UpdateStatus(Guid agendamentoId, string novoStatus)
         {
             var agendamento = await _context.Agendamentos.FindAsync(agendamentoId);
             if (agendamento == null)
             {
-                return new Maybe<bool>(ErrorCodes.NotFound);
+                return false;
             }
 
             agendamento.Status = novoStatus;
             await _context.SaveChangesAsync();
 
-            return new Maybe<bool>(true);
+            return true;
         }
 
         /// <summary>
-        /// Retrieves a single appointment by identifier with all client, employee, and service details.
+        /// Retrieves a single appointment by identifier with all details, or null if not found.
         /// </summary>
-        public async Task<Maybe<MinAgendamentoDTO>> GetOne(Guid agendamentoId)
+        public async Task<MinAgendamentoDTO?> GetOne(Guid agendamentoId)
         {
             var a = await _context.Agendamentos
                 .AsNoTracking()
@@ -162,7 +156,7 @@ namespace api.Repositories
 
             if (a == null)
             {
-                return new Maybe<MinAgendamentoDTO>(ErrorCodes.NotFound);
+                return null;
             }
 
             var servicos = a.ServicosRealizados
@@ -174,7 +168,7 @@ namespace api.Repositories
                 ))
                 .ToArray();
 
-            var dto = new MinAgendamentoDTO(
+            return new MinAgendamentoDTO(
                 a.Id,
                 a.DataAgendamento,
                 a.Status,
@@ -183,8 +177,6 @@ namespace api.Repositories
                 new MinClienteDTO(a.Cliente.Nome, a.Cliente.Telefone ?? string.Empty),
                 new MinFuncionarioDTO(a.Funcionario.Id, a.Funcionario.Nome)
             );
-
-            return new Maybe<MinAgendamentoDTO>(dto);
         }
     }
 }

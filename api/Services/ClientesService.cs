@@ -1,7 +1,7 @@
 using api.DTOs;
+using api.Exceptions;
 using api.Models;
 using api.Repositories;
-using api.Utilities;
 
 namespace api.Services
 {
@@ -9,6 +9,9 @@ namespace api.Services
     {
         private readonly ClientesRepository _repo = repo;
 
+        /// <summary>
+        /// Retrieves all clients.
+        /// </summary>
         public async Task<Cliente[]> GetAll()
         {
             var dbClientes = await _repo.GetAll();
@@ -26,13 +29,16 @@ namespace api.Services
             ];
         }
 
-        public async Task<Cliente?> GetOne(Guid id)
+        /// <summary>
+        /// Retrieves a single client by id or throws ResourceNotFoundException.
+        /// </summary>
+        public async Task<Cliente> GetOne(Guid id)
         {
             var result = await _repo.GetOne(id);
 
-            if (!result.HasValue)
+            if (result is null)
             {
-                return null;
+                throw new ResourceNotFoundException("Cliente não encontrado.");
             }
 
             var c = result.Value;
@@ -47,7 +53,10 @@ namespace api.Services
             );
         }
 
-        public async Task<Maybe<bool>> CreateOne(ClienteCreateDTO dto)
+        /// <summary>
+        /// Creates a new client, throwing ConflictException if CPF already exists.
+        /// </summary>
+        public async Task CreateOne(ClienteCreateDTO dto)
         {
             if (!string.IsNullOrEmpty(dto.CPF))
             {
@@ -55,7 +64,7 @@ namespace api.Services
 
                 if (cpfExists)
                 {
-                    return new Maybe<bool>(ErrorCodes.AlreadyExists);
+                    throw new ConflictException("Já existe um cliente com este CPF.", "ALREADY_EXISTS");
                 }
             }
 
@@ -68,7 +77,7 @@ namespace api.Services
                 dto.DtNascimento
             );
 
-            var created = await _repo.CreateOne(
+            await _repo.CreateOne(
                 new ClienteDTO(
                     newCliente.Id,
                     newCliente.Nome,
@@ -80,14 +89,6 @@ namespace api.Services
                         : null
                 )
             );
-
-            if (created)
-            {
-                return new Maybe<bool>(true);
-            }
-
-            // TODO: Lidar com erros
-            throw new Exception("Erro ao criar cliente.");
         }
     }
 }

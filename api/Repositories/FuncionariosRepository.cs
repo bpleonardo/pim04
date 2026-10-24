@@ -1,7 +1,6 @@
 using api.Data;
 using api.DTOs;
 using api.Models;
-using api.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -34,9 +33,9 @@ namespace api.Repositories
         }
 
         /// <summary>
-        /// Retrieves an employee by their unique identifier.
+        /// Retrieves an employee by their unique identifier or null if not found.
         /// </summary>
-        public async Task<Maybe<FuncionarioDTO>> GetOne(Guid id)
+        public async Task<FuncionarioDTO?> GetOne(Guid id)
         {
             var funcionario = await _context.Funcionarios
                 .AsNoTracking()
@@ -44,19 +43,17 @@ namespace api.Repositories
 
             if (funcionario != null)
             {
-                return new Maybe<FuncionarioDTO>(
-                    new FuncionarioDTO(
-                        funcionario.Id,
-                        funcionario.Nome,
-                        funcionario.Telefone ?? string.Empty,
-                        funcionario.CPF,
-                        funcionario.Email,
-                        funcionario.Endereco
-                    )
+                return new FuncionarioDTO(
+                    funcionario.Id,
+                    funcionario.Nome,
+                    funcionario.Telefone ?? string.Empty,
+                    funcionario.CPF,
+                    funcionario.Email,
+                    funcionario.Endereco
                 );
             }
 
-            return new Maybe<FuncionarioDTO>(ErrorCodes.NotFound);
+            return null;
         }
 
         /// <summary>

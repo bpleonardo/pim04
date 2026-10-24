@@ -1,7 +1,7 @@
 using api.DTOs;
+using api.Exceptions;
 using api.Models;
 using api.Repositories;
-using api.Utilities;
 
 namespace api.Services
 {
@@ -9,6 +9,9 @@ namespace api.Services
     {
         private readonly ServicosRepository _repo = repo;
 
+        /// <summary>
+        /// Retrieves all services.
+        /// </summary>
         public async Task<Servico[]> GetAll()
         {
             var dbServicos = await _repo.GetAll();
@@ -16,13 +19,16 @@ namespace api.Services
             return [.. dbServicos.Select(s => new Servico(s.Id, s.Nome, s.Descricao, s.Preco))];
         }
 
-        public async Task<Servico?> GetOne(Guid id)
+        /// <summary>
+        /// Retrieves a single service by id or throws ResourceNotFoundException.
+        /// </summary>
+        public async Task<Servico> GetOne(Guid id)
         {
             var result = await _repo.GetOne(id);
 
-            if (!result.HasValue)
+            if (result is null)
             {
-                return null;
+                throw new ResourceNotFoundException("Serviço não encontrado.");
             }
 
             var service = result.Value;
@@ -30,16 +36,22 @@ namespace api.Services
             return new Servico(service.Id, service.Nome, service.Descricao, service.Preco);
         }
 
-        public async Task<Maybe<bool>> DeleteOne(Guid id)
+        /// <summary>
+        /// Deletes a service by id or throws ResourceNotFoundException/ConflictException.
+        /// </summary>
+        public async Task DeleteOne(Guid id)
         {
-            return await _repo.DeleteOne(id);
+            await _repo.DeleteOne(id);
         }
 
-        public async Task<bool> CreateOne(ServicoCreateDTO dto)
+        /// <summary>
+        /// Creates a new service.
+        /// </summary>
+        public async Task CreateOne(ServicoCreateDTO dto)
         {
             var newServico = new Servico(null, dto.Nome, dto.Descricao, dto.Preco);
 
-            var created = await _repo.CreateOne(
+            await _repo.CreateOne(
                 new ServicoDTO(
                     newServico.Id,
                     newServico.Nome,
@@ -47,23 +59,18 @@ namespace api.Services
                     newServico.Preco
                 )
             );
-
-            if (created)
-            {
-                return true;
-            }
-
-            // TODO: Lidar com erros
-            throw new Exception("Erro ao criar serviço.");
         }
 
-        public async Task<Maybe<bool>> UpdateOne(Guid id, ServicoUpdateDTO dto)
+        /// <summary>
+        /// Updates fields of an existing service or throws ResourceNotFoundException.
+        /// </summary>
+        public async Task UpdateOne(Guid id, ServicoUpdateDTO dto)
         {
             var existingResult = await _repo.GetOne(id);
 
-            if (!existingResult.HasValue)
+            if (existingResult is null)
             {
-                return new Maybe<bool>(ErrorCodes.NotFound);
+                throw new ResourceNotFoundException("Serviço não encontrado.");
             }
 
             var existing = existingResult.Value;
@@ -79,25 +86,23 @@ namespace api.Services
 
             if (!updateResult)
             {
-                return new Maybe<bool>(ErrorCodes.NotFound);
+                throw new ResourceNotFoundException("Serviço não encontrado.");
             }
-
-            return new Maybe<bool>(true);
         }
 
-        public async Task<bool> ReplaceOne(Guid id, ServicoCreateDTO dto)
+        /// <summary>
+        /// Replaces an existing service or throws ResourceNotFoundException.
+        /// </summary>
+        public async Task ReplaceOne(Guid id, ServicoCreateDTO dto)
         {
             var updated = await _repo.UpdateOne(
                 new ServicoDTO(id, dto.Nome, dto.Descricao, dto.Preco)
             );
 
-            if (updated)
+            if (!updated)
             {
-                return true;
+                throw new ResourceNotFoundException("Serviço não encontrado.");
             }
-
-            // TODO: Lidar com erros.
-            throw new Exception("Erro ao atualizar serviço.");
         }
     }
 }

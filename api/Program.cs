@@ -54,7 +54,33 @@ namespace api
             builder.Services.AddScoped<Services.DashboardService>();
             builder.Services.AddScoped<Services.FinanceiroService>();
 
-            builder.Services.AddControllers();
+            builder.Services.AddExceptionHandler<Utilities.GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
+
+            builder
+                .Services.AddControllers()
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var errors = context
+                            .ModelState.Where(e => e.Value?.Errors.Count > 0)
+                            .SelectMany(e => e.Value!.Errors.Select(x => x.ErrorMessage))
+                            .Where(msg => !string.IsNullOrWhiteSpace(msg))
+                            .ToList();
+
+                        var message =
+                            errors.Count > 0
+                                ? string.Join("; ", errors)
+                                : "Dados de requisição inválidos.";
+
+                        var errorResponse = new Utilities.ErrorResponse(
+                            "VALIDATION_ERROR",
+                            message
+                        );
+                        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(errorResponse);
+                    };
+                });
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -63,6 +89,8 @@ namespace api
             builder.Services.AddOpenApi();
 
             var app = builder.Build();
+
+            app.UseExceptionHandler();
 
             using (var scope = app.Services.CreateScope())
             {

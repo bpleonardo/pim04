@@ -1,7 +1,7 @@
 using api.Data;
 using api.DTOs;
+using api.Exceptions;
 using api.Models;
-using api.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -19,52 +19,55 @@ namespace api.Repositories
         /// </summary>
         public async Task<ServicoDTO[]> GetAll()
         {
-            return await _context.Servicos
-                .AsNoTracking()
+            return await _context
+                .Servicos.AsNoTracking()
                 .Select(s => new ServicoDTO(s.Id, s.Nome, s.Descricao, s.Preco))
                 .ToArrayAsync();
         }
 
         /// <summary>
-        /// Retrieves a service by its unique identifier.
+        /// Retrieves a service by its unique identifier or null if not found.
         /// </summary>
-        public async Task<Maybe<ServicoDTO>> GetOne(Guid id)
+        public async Task<ServicoDTO?> GetOne(Guid id)
         {
-            var servico = await _context.Servicos
-                .AsNoTracking()
+            var servico = await _context
+                .Servicos.AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (servico != null)
             {
-                return new Maybe<ServicoDTO>(
-                    new ServicoDTO(servico.Id, servico.Nome, servico.Descricao, servico.Preco)
-                );
+                return new ServicoDTO(servico.Id, servico.Nome, servico.Descricao, servico.Preco);
             }
 
-            return new Maybe<ServicoDTO>(ErrorCodes.NotFound);
+            return null;
         }
 
         /// <summary>
-        /// Deletes a service by its unique identifier.
+        /// Deletes a service by its unique identifier, throwing ResourceNotFoundException if missing or ConflictException if referenced.
         /// </summary>
-        public async Task<Maybe<bool>> DeleteOne(Guid id)
+        public async Task DeleteOne(Guid id)
         {
             var servico = await _context.Servicos.FindAsync(id);
             if (servico == null)
             {
-                return new Maybe<bool>(ErrorCodes.NotFound);
+                throw new ResourceNotFoundException("Serviço não encontrado.");
             }
 
             try
             {
                 _context.Servicos.Remove(servico);
                 await _context.SaveChangesAsync();
-                return new Maybe<bool>(true);
             }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pex && (pex.SqlState == "23001" || pex.SqlState == "23503"))
+            catch (DbUpdateException ex)
+                when (ex.InnerException is PostgresException pex
+                    && (pex.SqlState == "23001" || pex.SqlState == "23503")
+                )
             {
                 // restrict_violation / foreign_key_violation: O serviço está sendo referenciado por um agendamento.
-                return new Maybe<bool>(ErrorCodes.CantModify);
+                throw new ConflictException(
+                    "Não é possível modificar este recurso.",
+                    "CANT_MODIFY"
+                );
             }
         }
 
