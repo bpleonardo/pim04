@@ -11,17 +11,27 @@ namespace api.Services
         /// <summary>
         /// Retrieves financial metrics and breakdown for the specified period.
         /// </summary>
-        public async Task<FinanceiroDTO> GetFinanceiro(string periodo, DateOnly? dataInicio = null, DateOnly? dataFim = null)
+        public async Task<FinanceiroDTO> GetFinanceiro(
+            string periodo,
+            DateOnly? dataInicio = null,
+            DateOnly? dataFim = null
+        )
         {
             var validPeriodos = new[] { "hoje", "semana", "mes", "personalizado" };
             if (!validPeriodos.Contains(periodo))
             {
-                throw new ValidationException("Período inválido. Use: hoje, semana, mes, personalizado", "INVALID_PERIOD");
+                throw new ValidationException(
+                    "Período inválido. Use: hoje, semana, mes, personalizado",
+                    "INVALID_PERIOD"
+                );
             }
 
             if (periodo == "personalizado" && (!dataInicio.HasValue || !dataFim.HasValue))
             {
-                throw new ValidationException("Para período personalizado, forneça dataInicio e dataFim", "MISSING_DATES");
+                throw new ValidationException(
+                    "Para período personalizado, forneça dataInicio e dataFim",
+                    "MISSING_DATES"
+                );
             }
 
             var appointments = periodo switch
@@ -29,9 +39,9 @@ namespace api.Services
                 "hoje" => await _agendamentosRepo.GetByDate(DateOnly.FromDateTime(DateTime.Now)),
                 "semana" => await GetAppointmentsByWeek(),
                 "mes" => await GetAppointmentsByMonth(),
-                "personalizado" when dataInicio.HasValue && dataFim.HasValue => 
+                "personalizado" when dataInicio.HasValue && dataFim.HasValue =>
                     await GetAppointmentsByRange(dataInicio.Value, dataFim.Value),
-                _ => []
+                _ => [],
             };
 
             var validAppointments = appointments.Where(a => a.Status != "cancelado").ToArray();
@@ -46,7 +56,7 @@ namespace api.Services
                 {
                     if (!serviceBreakdown.ContainsKey(service.Nome))
                         serviceBreakdown[service.Nome] = 0;
-                    
+
                     serviceBreakdown[service.Nome] += service.Preco;
                 }
             }
@@ -58,19 +68,21 @@ namespace api.Services
                 {
                     Nome = x.Key,
                     Valor = x.Value.ToString("C2"),
-                    Percentual = totalRevenue > 0 ? (int)((x.Value / totalRevenue) * 100) : 0
+                    Percentual = totalRevenue > 0 ? (int)(x.Value / totalRevenue * 100) : 0,
                 })
                 .ToArray();
 
             // Create transactions list
             var transacoes = validAppointments
-                .SelectMany(appt => appt.Servicos.Select(svc => new TransacaoDTO
-                {
-                    Data = appt.DataAgendamento.ToString("dd/MM/yyyy"),
-                    Cliente = appt.Cliente.Nome,
-                    Servico = svc.Nome,
-                    Valor = svc.Preco.ToString("C2")
-                }))
+                .SelectMany(appt =>
+                    appt.Servicos.Select(svc => new TransacaoDTO
+                    {
+                        Data = appt.DataAgendamento.ToString("dd/MM/yyyy"),
+                        Cliente = appt.Cliente.Nome,
+                        Servico = svc.Nome,
+                        Valor = svc.Preco.ToString("C2"),
+                    })
+                )
                 .OrderByDescending(t => t.Data)
                 .ToArray();
 
@@ -81,15 +93,18 @@ namespace api.Services
                 Label = "Faturamento total",
                 Value = revenue.ToString("C2"),
                 Note = "Destaque do período",
-                Highlight = true
+                Highlight = true,
             };
 
             var indic2 = new IndicadorDTO
             {
                 Label = "Total de atendimentos",
                 Value = appointmentCount.ToString(),
-                Note = appointmentCount > 0 ? $"Média de {(double)appointmentCount / (periodo == "semana" ? 7 : periodo == "mes" ? 30 : 1):F1} por dia" : "Sem dados",
-                Highlight = false
+                Note =
+                    appointmentCount > 0
+                        ? $"Média de {(double)appointmentCount / (periodo == "semana" ? 7 : periodo == "mes" ? 30 : 1):F1} por dia"
+                        : "Sem dados",
+                Highlight = false,
             };
 
             var indic3 = new IndicadorDTO
@@ -97,7 +112,7 @@ namespace api.Services
                 Label = "Ticket médio",
                 Value = avgTicket.ToString("C2"),
                 Note = avgTicket > 0 ? "Cálculo atual" : "Sem dados",
-                Highlight = false
+                Highlight = false,
             };
 
             return new FinanceiroDTO
@@ -105,7 +120,7 @@ namespace api.Services
                 Indicadores = [indic1, indic2, indic3],
                 Barras = barras,
                 Transacoes = transacoes,
-                Total = revenue.ToString("C2")
+                Total = revenue.ToString("C2"),
             };
         }
 

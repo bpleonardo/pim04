@@ -22,14 +22,8 @@ namespace api.Services
         /// </summary>
         public async Task<FuncionarioDTO> GetOne(Guid id)
         {
-            var funcionario = await _repo.GetOne(id);
-
-            if (funcionario is null)
-            {
-                throw new ResourceNotFoundException("Funcionário não encontrado.");
-            }
-
-            return funcionario.Value;
+            return await _repo.GetOne(id)
+                ?? throw new ResourceNotFoundException("Funcionário não encontrado.");
         }
 
         /// <summary>
@@ -50,7 +44,7 @@ namespace api.Services
                 new FuncionarioDTO(
                     newFuncionario.Id,
                     newFuncionario.Nome,
-                    newFuncionario.Telefone,
+                    newFuncionario.Telefone ?? string.Empty,
                     newFuncionario.CPF,
                     newFuncionario.Email,
                     newFuncionario.Endereco

@@ -34,14 +34,9 @@ namespace api.Services
         /// </summary>
         public async Task<Cliente> GetOne(Guid id)
         {
-            var result = await _repo.GetOne(id);
-
-            if (result is null)
-            {
-                throw new ResourceNotFoundException("Cliente não encontrado.");
-            }
-
-            var c = result.Value;
+            var c =
+                await _repo.GetOne(id)
+                ?? throw new ResourceNotFoundException("Cliente não encontrado.");
 
             return new Cliente(
                 c.Id,
@@ -64,7 +59,10 @@ namespace api.Services
 
                 if (cpfExists)
                 {
-                    throw new ConflictException("Já existe um cliente com este CPF.", "ALREADY_EXISTS");
+                    throw new ConflictException(
+                        "Já existe um cliente com este CPF.",
+                        "ALREADY_EXISTS"
+                    );
                 }
             }
 
@@ -81,7 +79,7 @@ namespace api.Services
                 new ClienteDTO(
                     newCliente.Id,
                     newCliente.Nome,
-                    newCliente.Telefone,
+                    newCliente.Telefone ?? string.Empty,
                     newCliente.CPF,
                     newCliente.Email,
                     newCliente.DtNascimento.HasValue

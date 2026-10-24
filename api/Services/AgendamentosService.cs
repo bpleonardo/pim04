@@ -15,7 +15,6 @@ namespace api.Services
         private readonly AgendamentosRepository _agendamentosRepo = agendamentosRepo;
         private readonly ClientesRepository _clientesRepo = clientesRepo;
         private readonly ServicosRepository _servicosRepo = servicosRepo;
-        private readonly HorariosRepository _horariosRepo = horariosRepo;
 
         /// <summary>
         /// Retrieves all appointments for the specified date (or today if null).
@@ -31,7 +30,10 @@ namespace api.Services
         public async Task<AgendamentoResponseDTO> CreateOne(AgendamentoCreateDTO dto)
         {
             // 1. Validate slot availability
-            var isAvailable = await _agendamentosRepo.IsSlotAvailable(dto.IdFuncionario, dto.DataAgendamento);
+            var isAvailable = await _agendamentosRepo.IsSlotAvailable(
+                dto.IdFuncionario,
+                dto.DataAgendamento
+            );
             if (!isAvailable)
             {
                 throw new ConflictException("Horário indisponível para o funcionário informado.");
@@ -55,7 +57,7 @@ namespace api.Services
                     new ClienteDTO(
                         novoCliente.Id,
                         novoCliente.Nome,
-                        novoCliente.Telefone,
+                        novoCliente.Telefone ?? string.Empty,
                         novoCliente.CPF,
                         novoCliente.Email,
                         novoCliente.DtNascimento.HasValue
@@ -73,14 +75,14 @@ namespace api.Services
 
             foreach (var idServico in dto.IdServicos ?? [])
             {
-                var servico = await _servicosRepo.GetOne(idServico);
-                if (servico is null)
-                {
-                    throw new ResourceNotFoundException($"Serviço com ID '{idServico}' não encontrado.");
-                }
+                var servico =
+                    await _servicosRepo.GetOne(idServico)
+                    ?? throw new ResourceNotFoundException(
+                        $"Serviço com ID '{idServico}' não encontrado."
+                    );
 
-                servicosList.Add(servico.Value);
-                total += servico.Value.Preco;
+                servicosList.Add(servico);
+                total += servico.Preco;
             }
 
             // 4. Create agendamento
@@ -93,14 +95,11 @@ namespace api.Services
             );
 
             // 5. Fetch created agendamento and return
-            var agendamento = await _agendamentosRepo.GetOne(agendamentoId);
+            var agendamento =
+                await _agendamentosRepo.GetOne(agendamentoId)
+                ?? throw new ResourceNotFoundException("Agendamento não encontrado.");
 
-            if (agendamento is null)
-            {
-                throw new ResourceNotFoundException("Agendamento não encontrado.");
-            }
-
-            var appt = agendamento.Value;
+            var appt = agendamento;
             return new AgendamentoResponseDTO
             {
                 Id = appt.Id,
@@ -121,7 +120,9 @@ namespace api.Services
             var validStatuses = new[] { "agendado", "concluido", "cancelado" };
             if (!validStatuses.Contains(novoStatus))
             {
-                throw new ValidationException("Status inválido. Use: agendado, concluido ou cancelado.");
+                throw new ValidationException(
+                    "Status inválido. Use: agendado, concluido ou cancelado."
+                );
             }
 
             var updated = await _agendamentosRepo.UpdateStatus(agendamentoId, novoStatus);

@@ -47,12 +47,9 @@ namespace api.Repositories
         /// </summary>
         public async Task DeleteOne(Guid id)
         {
-            var servico = await _context.Servicos.FindAsync(id);
-            if (servico == null)
-            {
-                throw new ResourceNotFoundException("Serviço não encontrado.");
-            }
-
+            var servico =
+                await _context.Servicos.FindAsync(id)
+                ?? throw new ResourceNotFoundException("Serviço não encontrado.");
             try
             {
                 _context.Servicos.Remove(servico);

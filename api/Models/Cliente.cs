@@ -15,7 +15,7 @@ namespace api.Models
         public DateOnly? DtNascimento { get; set; }
 
         // Navegação para a lista de agendamentos do cliente
-        public ICollection<Agendamento> Agendamentos { get; set; } = new List<Agendamento>();
+        public ICollection<Agendamento> Agendamentos { get; set; } = [];
 
         public Cliente(
             Guid? id,
@@ -24,7 +24,8 @@ namespace api.Models
             string? cpf,
             string? email,
             DateOnly? dtNascimento
-        ) : base(id, nome, telefone, cpf, email)
+        )
+            : base(id, nome, telefone, cpf, email)
         {
             DtNascimento = dtNascimento;
         }

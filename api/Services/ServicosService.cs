@@ -24,14 +24,9 @@ namespace api.Services
         /// </summary>
         public async Task<Servico> GetOne(Guid id)
         {
-            var result = await _repo.GetOne(id);
-
-            if (result is null)
-            {
-                throw new ResourceNotFoundException("Serviço não encontrado.");
-            }
-
-            var service = result.Value;
+            var service =
+                await _repo.GetOne(id)
+                ?? throw new ResourceNotFoundException("Serviço não encontrado.");
 
             return new Servico(service.Id, service.Nome, service.Descricao, service.Preco);
         }
@@ -66,14 +61,9 @@ namespace api.Services
         /// </summary>
         public async Task UpdateOne(Guid id, ServicoUpdateDTO dto)
         {
-            var existingResult = await _repo.GetOne(id);
-
-            if (existingResult is null)
-            {
-                throw new ResourceNotFoundException("Serviço não encontrado.");
-            }
-
-            var existing = existingResult.Value;
+            var existing =
+                await _repo.GetOne(id)
+                ?? throw new ResourceNotFoundException("Serviço não encontrado.");
 
             var updatedServico = new ServicoDTO(
                 id,

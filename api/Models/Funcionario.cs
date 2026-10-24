@@ -18,7 +18,7 @@ namespace api.Models
         public Usuario? Usuario { get; set; }
 
         // Navegação para a lista de agendamentos atribuídos ao funcionário
-        public ICollection<Agendamento> Agendamentos { get; set; } = new List<Agendamento>();
+        public ICollection<Agendamento> Agendamentos { get; set; } = [];
 
         public Funcionario(
             Guid? id,
@@ -27,7 +27,8 @@ namespace api.Models
             string cpf,
             string email,
             string endereco
-        ) : base(id, nome, telefone, cpf, email)
+        )
+            : base(id, nome, telefone, cpf, email)
         {
             Endereco = endereco;
         }
