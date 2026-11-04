@@ -1,10 +1,16 @@
 import 'dart:convert';
+import '../../models/usuario.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
   static const baseUrl = String.fromEnvironment('API_BASE_URL',
       defaultValue: 'http://localhost:8080');
   static String? token;
+  static Usuario? usuario;
+  static void sair() {
+    token = null;
+    usuario = null;
+  }
   final http.Client _client = http.Client();
   Future<dynamic> request(String method, String path, {Object? body}) async {
     final uri = Uri.parse('$baseUrl$path');
@@ -40,7 +46,7 @@ class ApiClient {
               decoded['title'] ??
               'Erro HTTP ${response.statusCode}')
           : response.reasonPhrase;
-      throw Exception('$error');
+      throw Exception(error is Map ? '${error['message'] ?? error}' : '$error');
     }
     if (decoded is Map && decoded['success'] == false)
       throw Exception('${decoded['error'] ?? 'Erro da API'}');

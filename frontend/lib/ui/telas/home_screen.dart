@@ -9,7 +9,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Barbearia'), actions: [
         IconButton(
             onPressed: () {
-              ApiClient.token = null;
+              ApiClient.sair();
               Navigator.pushNamedAndRemoveUntil(
                   context, Rotas.login, (_) => false);
             },

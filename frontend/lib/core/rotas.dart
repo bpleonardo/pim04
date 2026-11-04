@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'plataforma.dart';
+import '../ui/telas/cortes_dia_screen.dart';
 import '../ui/telas/login_screen.dart';
 import '../ui/telas/home_screen.dart';
 import '../ui/telas/catalogo_screen.dart';
@@ -13,7 +15,15 @@ class Rotas {
   static const novo = '/agendar';
   static const agenda = '/agenda';
   static const dashboard = '/dashboard';
-  static Map<String, WidgetBuilder> get routes => {
+  static Map<String, WidgetBuilder> get routes {
+    if (Plataforma.mobile) {
+      return {
+        login: (_) => const LoginScreen(),
+        for (final rota in [home, catalogo, novo, agenda, dashboard])
+          rota: (_) => const CortesDiaScreen(),
+      };
+    }
+    return {
         login: (_) => const LoginScreen(),
         home: (_) => const HomeScreen(),
         catalogo: (_) => const CatalogoScreen(),
@@ -21,4 +31,5 @@ class Rotas {
         agenda: (_) => const AgendaScreen(),
         dashboard: (_) => const DashboardScreen(),
       };
+  }
 }

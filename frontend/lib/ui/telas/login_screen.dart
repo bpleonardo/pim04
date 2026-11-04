@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/rotas.dart';
+import '../../models/usuario.dart';
 import '../../data/api/barbearia_api.dart';
 import '../../data/api/api_client.dart';
 
@@ -25,7 +26,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => busy = true);
     try {
       final result = await BarbeariaApi().login(login.text.trim(), senha.text);
+      final usuario = Usuario.fromJson(Map<String, dynamic>.from(result['user']));
       ApiClient.token = result['token'] as String;
+      ApiClient.usuario = usuario;
       if (mounted) Navigator.pushReplacementNamed(context, Rotas.home);
     } catch (e) {
       if (mounted)

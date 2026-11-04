@@ -3,6 +3,8 @@ import '../api/barbearia_api.dart';
 
 class AgendamentoRepository {
   final BarbeariaApi api = BarbeariaApi();
+  Future<List<Agendamento>> meusCortesHoje() => api.meusCortesHoje();
+  Future<void> concluirMeuCorte(String id) => api.concluirMeuCorte(id);
   Future<List<Agendamento>> listar() => api.agendamentos();
   Future<void> alterarStatus(String id, String status) =>
       api.status(id, status);
