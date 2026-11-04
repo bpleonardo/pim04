@@ -9,8 +9,9 @@ class DashboardScreen extends StatelessWidget {
       body: FutureBuilder<Map<String, dynamic>>(
           future: BarbeariaApi().dashboard(),
           builder: (context, s) {
-            if (s.connectionState != ConnectionState.done)
+            if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
+            }
             if (s.hasError) return Center(child: Text('Erro: ${s.error}'));
             final indicadores = (s.data?['indicadores'] as List?) ?? [];
             return ListView(padding: const EdgeInsets.all(16), children: [

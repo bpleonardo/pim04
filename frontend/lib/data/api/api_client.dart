@@ -11,6 +11,7 @@ class ApiClient {
     token = null;
     usuario = null;
   }
+
   final http.Client _client = http.Client();
   Future<dynamic> request(String method, String path, {Object? body}) async {
     final uri = Uri.parse('$baseUrl$path');
@@ -48,8 +49,9 @@ class ApiClient {
           : response.reasonPhrase;
       throw Exception(error is Map ? '${error['message'] ?? error}' : '$error');
     }
-    if (decoded is Map && decoded['success'] == false)
+    if (decoded is Map && decoded['success'] == false) {
       throw Exception('${decoded['error'] ?? 'Erro da API'}');
+    }
     return decoded is Map && decoded.containsKey('data')
         ? decoded['data']
         : decoded;

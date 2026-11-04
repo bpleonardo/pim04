@@ -1,4 +1,7 @@
 using api.Data;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using static api.Utilities.Functions;
@@ -68,6 +71,24 @@ namespace api
                             .AllowAnyMethod()));
             }
 
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                            builder.Configuration["Jwt:Key"] ?? "your-secret-key-change-in-production")),
+                        ValidateIssuer = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "api",
+                        ValidateAudience = true,
+                        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "client",
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero,
+                        ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                    };
+                });
+            builder.Services.AddAuthorization();
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();
@@ -105,6 +126,7 @@ namespace api
                 app.UseCors("FlutterLocal");
             }
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

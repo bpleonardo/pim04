@@ -13,14 +13,19 @@ class Agendamento {
       this.funcionarioId = '',
       this.servicos = const []});
   factory Agendamento.fromJson(Map<String, dynamic> j) => Agendamento(
-      id: j['id'].toString(),
-      dataAgendamento: j['dataAgendamento'].toString(),
-      status: j['status'] as String,
-      nomeCliente: (j['cliente']?['nome'] ?? j['nomeCliente'] ?? '').toString(),
-      nomeFuncionario:
-          (j['funcionario']?['nome'] ?? j['nomeFuncionario'] ?? '').toString(),
-      total: (j['total'] as num).toDouble(),
-      funcionarioId: (j['funcionario']?['id'] ?? j['idFuncionario'] ?? '').toString(),
-      servicos: [for (final s in (j['servicos'] as List? ?? []))
-        s is Map ? s['nome'].toString() : s.toString()]);
+          id: j['id'].toString(),
+          dataAgendamento: j['dataAgendamento'].toString(),
+          status: j['status'] as String,
+          nomeCliente:
+              (j['cliente']?['nome'] ?? j['nomeCliente'] ?? '').toString(),
+          nomeFuncionario:
+              (j['funcionario']?['nome'] ?? j['nomeFuncionario'] ?? '')
+                  .toString(),
+          total: (j['total'] as num).toDouble(),
+          funcionarioId:
+              (j['funcionario']?['id'] ?? j['idFuncionario'] ?? '').toString(),
+          servicos: [
+            for (final s in (j['servicos'] as List? ?? []))
+              s is Map ? s['nome'].toString() : s.toString()
+          ]);
 }

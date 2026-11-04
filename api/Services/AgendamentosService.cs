@@ -17,6 +17,16 @@ namespace api.Services
         private readonly ServicosRepository _servicosRepo = servicosRepo;
         private readonly HorariosRepository _horariosRepo = horariosRepo;
 
+        private static DateOnly HojeNaBarbearia() => DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
+                TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo")));
+
+        public Task<MinAgendamentoDTO[]> GetMyToday(Guid funcionarioId) =>
+            _agendamentosRepo.GetByDate(HojeNaBarbearia(), funcionarioId);
+
+        public Task<bool> CompleteMyToday(Guid id, Guid funcionarioId) =>
+            _agendamentosRepo.CompleteToday(id, funcionarioId, HojeNaBarbearia());
+
         public async Task<MinAgendamentoDTO[]> GetAll(DateOnly? date = null)
         {
             return await _agendamentosRepo.GetByDate(date ?? DateOnly.FromDateTime(DateTime.Now));

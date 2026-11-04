@@ -1,4 +1,6 @@
 using api.DTOs;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using api.Services;
 using api.Utilities;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +12,27 @@ namespace api.Controllers
     public class AgendamentosController(AgendamentosService service) : ControllerBase
     {
         private readonly AgendamentosService _service = service;
+
+        [Authorize]
+        [HttpGet("meus/hoje")]
+        public async Task<ActionResult<ApiResponse<MinAgendamentoDTO[]>>> GetMyToday()
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var funcionarioId))
+                return Unauthorized();
+            return Ok(ApiResponse.Ok(await _service.GetMyToday(funcionarioId)));
+        }
+
+        [Authorize]
+        [HttpPatch("meus/{id:guid}/concluir")]
+        public async Task<ActionResult> CompleteMyToday(Guid id)
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var funcionarioId))
+                return Unauthorized();
+            if (!await _service.CompleteMyToday(id, funcionarioId))
+                return Conflict(ApiResponse.Fail<EmptyResponse>(new ApiError("COMPLETE_FAILED",
+                    "O corte não está agendado para você hoje ou já foi finalizado.")));
+            return NoContent();
+        }
 
         // GET: /api/agendamentos?date=2026-05-26
         [HttpGet]

@@ -24,12 +24,12 @@ class Rotas {
       };
     }
     return {
-        login: (_) => const LoginScreen(),
-        home: (_) => const HomeScreen(),
-        catalogo: (_) => const CatalogoScreen(),
-        novo: (_) => const AgendamentoScreen(),
-        agenda: (_) => const AgendaScreen(),
-        dashboard: (_) => const DashboardScreen(),
-      };
+      login: (_) => const LoginScreen(),
+      home: (_) => const HomeScreen(),
+      catalogo: (_) => const CatalogoScreen(),
+      novo: (_) => const AgendamentoScreen(),
+      agenda: (_) => const AgendaScreen(),
+      dashboard: (_) => const DashboardScreen(),
+    };
   }
 }

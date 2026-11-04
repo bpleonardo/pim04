@@ -26,14 +26,16 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => busy = true);
     try {
       final result = await BarbeariaApi().login(login.text.trim(), senha.text);
-      final usuario = Usuario.fromJson(Map<String, dynamic>.from(result['user']));
+      final usuario =
+          Usuario.fromJson(Map<String, dynamic>.from(result['user']));
       ApiClient.token = result['token'] as String;
       ApiClient.usuario = usuario;
       if (mounted) Navigator.pushReplacementNamed(context, Rotas.home);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$e')));
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }

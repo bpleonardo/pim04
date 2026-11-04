@@ -16,7 +16,7 @@ namespace api.Repositories
         /// <summary>
         /// Retrieves all appointments for a given date in the America/Sao_Paulo timezone.
         /// </summary>
-        public async Task<MinAgendamentoDTO[]> GetByDate(DateOnly date)
+        public async Task<MinAgendamentoDTO[]> GetByDate(DateOnly date, Guid? idFuncionario = null)
         {
             // Converte a data local de São Paulo para o intervalo correspondente em UTC
             var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
@@ -32,6 +32,7 @@ namespace api.Repositories
                 .Include(a => a.ServicosRealizados)
                     .ThenInclude(sr => sr.Servico)
                 .Where(a => a.DataAgendamento >= startUtc && a.DataAgendamento < endUtc)
+                .Where(a => !idFuncionario.HasValue || a.IdFuncionario == idFuncionario.Value)
                 .OrderBy(a => a.DataAgendamento)
                 .ToListAsync();
 
@@ -54,8 +55,25 @@ namespace api.Repositories
         }
 
         /// <summary>
-        /// Checks if a time slot is available for a specific employee.
+        /// Completes a pending appointment owned by the employee on the given day.
         /// </summary>
+        public async Task<bool> CompleteToday(Guid id, Guid funcionarioId, DateOnly date)
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            var startUtc = TimeZoneInfo.ConvertTimeToUtc(
+                date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), tz);
+            var endUtc = TimeZoneInfo.ConvertTimeToUtc(
+                date.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), tz);
+            // A condição e a alteração são executadas juntas, evitando concluir duas vezes.
+            var changed = await _context.Agendamentos
+                .Where(a => a.Id == id && a.IdFuncionario == funcionarioId
+                    && a.Status == "agendado"
+                    && a.DataAgendamento >= startUtc && a.DataAgendamento < endUtc)
+                .ExecuteUpdateAsync(update => update.SetProperty(a => a.Status, "concluido")
+                    .SetProperty(a => a.DataConclusao, DateTime.UtcNow));
+            return changed == 1;
+        }
+
         public async Task<bool> IsSlotAvailable(Guid idFuncionario, DateTime dateTime)
         {
             var dateTimeUtc = dateTime.Kind == DateTimeKind.Unspecified

@@ -38,7 +38,9 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
   }
 
   Future<void> atualizar() async {
-    setState(() => future = repo.meusCortesHoje());
+    setState(() {
+      future = repo.meusCortesHoje();
+    });
     try {
       await future;
     } catch (_) {
@@ -54,11 +56,14 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('Concluir corte?'),
-          content: Text('Confirmar que o atendimento de ${corte.nomeCliente} foi concluído?'),
+          content: Text(
+              'Confirmar que o atendimento de ${corte.nomeCliente} foi concluído?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
                 child: const Text('Voltar')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
                 child: const Text('Confirmar conclusão')),
           ],
         ),
@@ -66,14 +71,17 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
       if (confirmar != true || !mounted) return;
       await repo.concluirMeuCorte(corte.id);
       if (!mounted) return;
-      setState(() => future = repo.meusCortesHoje());
+      setState(() {
+        future = repo.meusCortesHoje();
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Corte concluído com sucesso.')),
       );
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Não foi possível concluir o corte. Atualize a lista e tente novamente.'),
+          content: Text(
+              'Não foi possível concluir o corte. Atualize a lista e tente novamente.'),
         ));
       }
     } finally {
@@ -116,19 +124,28 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: Text(corte.nomeCliente,
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600))),
+            Expanded(
+                child: Text(corte.nomeCliente,
+                    style: const TextStyle(
+                        fontSize: 19, fontWeight: FontWeight.w600))),
             const SizedBox(width: 12),
-            Text(hora(corte), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(hora(corte),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 8),
-          Text(corte.servicos.isEmpty ? 'Atendimento' : corte.servicos.join(' • ')),
+          Text(corte.servicos.isEmpty
+              ? 'Atendimento'
+              : corte.servicos.join(' • ')),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: Text('R\$ ${corte.total.toStringAsFixed(2).replaceAll('.', ',')}',
-                style: const TextStyle(fontWeight: FontWeight.w600))),
+            Expanded(
+                child: Text(
+                    'R\$ ${corte.total.toStringAsFixed(2).replaceAll('.', ',')}',
+                    style: const TextStyle(fontWeight: FontWeight.w600))),
             Text(status),
           ]),
           if (pendente) ...[
@@ -136,8 +153,10 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
             ElevatedButton.icon(
               onPressed: concluindo != null ? null : () => concluir(corte),
               icon: const Icon(Icons.check),
-              label: Text(concluindo == corte.id ? 'Aguarde...' : 'Concluir corte'),
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              label: Text(
+                  concluindo == corte.id ? 'Aguarde...' : 'Concluir corte'),
+              style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48)),
             ),
           ],
         ]),
@@ -147,70 +166,93 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF7F7F7),
-    appBar: AppBar(
-      automaticallyImplyLeading: false,
-      title: const Text('Cortes de hoje'),
-      actions: [
-        IconButton(tooltip: 'Atualizar', onPressed: atualizar, icon: const Icon(Icons.refresh)),
-        IconButton(tooltip: 'Sair', onPressed: () {
-          ApiClient.sair();
-          Navigator.pushNamedAndRemoveUntil(context, Rotas.login, (_) => false);
-        }, icon: const Icon(Icons.logout)),
-      ],
-    ),
-    body: SafeArea(child: Center(child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 650),
-      child: FutureBuilder<List<Agendamento>>(
-        future: future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Padding(padding: const EdgeInsets.all(24), child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.cloud_off_outlined, size: 40),
-                const SizedBox(height: 16),
-                const Text('Não foi possível carregar os cortes de hoje. Confira a conexão. Se a sessão expirou, saia e entre novamente.', textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: atualizar, child: const Text('Tentar novamente')),
-              ],
-            ));
-          }
-          final cortes = [...snapshot.data ?? <Agendamento>[]]
-            ..sort((a, b) => a.dataAgendamento.compareTo(b.dataAgendamento));
-          final pendentes = cortes.where((a) => a.status == 'agendado').length;
-          final concluidos = cortes.where((a) => a.status == 'concluido').length;
-          return RefreshIndicator(
-            onRefresh: atualizar,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
-              children: [
-                Text(ApiClient.usuario?.nome ?? 'Barbeiro',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Text(dataHoje),
-                const SizedBox(height: 12),
-                Text('$pendentes pendentes • $concluidos concluídos'),
-                const SizedBox(height: 22),
-                if (cortes.isEmpty)
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Column(children: [
-                      Icon(Icons.event_available_outlined, size: 48),
-                      SizedBox(height: 16),
-                      Text('Nenhum corte para você hoje.', textAlign: TextAlign.center),
-                      SizedBox(height: 8),
-                      Text('Puxe para baixo para atualizar.', textAlign: TextAlign.center),
-                    ])),
-                for (final corte in cortes) cartao(corte),
-              ],
-            ),
-          );
-        },
-      ),
-    ))),
-  );
+        backgroundColor: const Color(0xFFF7F7F7),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('Cortes de hoje'),
+          actions: [
+            IconButton(
+                tooltip: 'Atualizar',
+                onPressed: atualizar,
+                icon: const Icon(Icons.refresh)),
+            IconButton(
+                tooltip: 'Sair',
+                onPressed: () {
+                  ApiClient.sair();
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, Rotas.login, (_) => false);
+                },
+                icon: const Icon(Icons.logout)),
+          ],
+        ),
+        body: SafeArea(
+            child: Center(
+                child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 650),
+          child: FutureBuilder<List<Agendamento>>(
+            future: future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.cloud_off_outlined, size: 40),
+                        const SizedBox(height: 16),
+                        const Text(
+                            'Não foi possível carregar os cortes de hoje. Confira a conexão. Se a sessão expirou, saia e entre novamente.',
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                            onPressed: atualizar,
+                            child: const Text('Tentar novamente')),
+                      ],
+                    ));
+              }
+              final cortes = [
+                ...(snapshot.data ?? <Agendamento>[])
+              ]..sort((a, b) => a.dataAgendamento.compareTo(b.dataAgendamento));
+              final pendentes =
+                  cortes.where((a) => a.status == 'agendado').length;
+              final concluidos =
+                  cortes.where((a) => a.status == 'concluido').length;
+              return RefreshIndicator(
+                onRefresh: atualizar,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Text(ApiClient.usuario?.nome ?? 'Barbeiro',
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text(dataHoje),
+                    const SizedBox(height: 12),
+                    Text(
+                        '$pendentes ${pendentes == 1 ? 'pendente' : 'pendentes'} • $concluidos ${concluidos == 1 ? 'concluído' : 'concluídos'}'),
+                    const SizedBox(height: 22),
+                    if (cortes.isEmpty)
+                      const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 48),
+                          child: Column(children: [
+                            Icon(Icons.event_available_outlined, size: 48),
+                            SizedBox(height: 16),
+                            Text('Nenhum corte para você hoje.',
+                                textAlign: TextAlign.center),
+                            SizedBox(height: 8),
+                            Text('Puxe para baixo para atualizar.',
+                                textAlign: TextAlign.center),
+                          ])),
+                    for (final corte in cortes) cartao(corte),
+                  ],
+                ),
+              );
+            },
+          ),
+        ))),
+      );
 }

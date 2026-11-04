@@ -22,12 +22,14 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
       body: FutureBuilder<List<Servico>>(
           future: future,
           builder: (context, s) {
-            if (s.connectionState != ConnectionState.done)
+            if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
+            }
             if (s.hasError) return Center(child: Text('Erro: ${s.error}'));
             final list = s.data ?? [];
-            if (list.isEmpty)
+            if (list.isEmpty) {
               return const Center(child: Text('Nenhum serviço cadastrado'));
+            }
             return ListView(children: [
               for (final x in list)
                 ListTile(
