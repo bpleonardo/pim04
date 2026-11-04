@@ -1,12 +1,15 @@
 name: barbearia_frontend
-description: Front-end multiplataforma para barbearia.
+description: Aplicação de agendamento de barbearia
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+1
 environment:
   sdk: '>=3.4.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.2.2
+  sqflite: ^2.4.1
+  path: ^1.9.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

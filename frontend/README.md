@@ -1,16 +1,26 @@
-# Barbearia — Flutter starter
+# Barbearia Flutter — SQLite apenas no mobile
 
-Estrutura inicial com tema preto e branco, roteamento e tela visual de login. **O login ainda não envia requisições nem autentica usuários.**
+Estrutura: `lib/core`, `lib/data/api`, `lib/data/db`, `lib/data/repositories`, `lib/models`, `lib/ui/telas`, `lib/main.dart`.
 
-## Como iniciar
+## Estratégia de persistência
+- Android/iOS: cache de serviços em SQLite via `sqflite`, com fallback offline se houver dados armazenados.
+- Windows/Web: acesso direto à API .NET,.
+- PostgreSQL na API é a fonte oficial. Nenhum agendamento é confirmado offline.
 
-1. Instale o Flutter SDK e habilite as plataformas desejadas.
-2. Na pasta deste projeto, execute `flutter create --platforms=android,web,windows .` (no macOS, acrescente `ios,macos` conforme necessário).
-3. Execute `flutter pub get`.
-4. Execute `flutter run -d chrome` ou `flutter run -d windows`.
+## Execução
+Na pasta do projeto:
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080
+```
+Para Windows, use `-d windows`; para emulador Android use `-d emulator-5554` (ajuste conforme `flutter devices`) e `--dart-define=API_BASE_URL=http://10.0.2.2:8080`.
 
-Para configurar a URL da API futuramente, execute com `--dart-define=API_BASE_URL=http://localhost:5000` (substitua pela URL real).
-
-O endpoint confirmado de login da API é `POST /api/Login`, com `Login` e `Senha`. O tratamento do token, autenticação e controle de acesso serão feitos na etapa seguinte.
-
-**Atenção:** a pasta `flutter create` gera arquivos nativos; este pacote contém apenas o código inicial compartilhado.
+## Pendências importantes
+- Verificar em execução os contratos reais dos DTOs e o formato das respostas HTTP, inclusive horário, token e status.
+- JWT fica apenas em memória; falta armazenamento seguro e renovação de sessão.
+- Autenticação do cliente ainda não confirmada; login atual é administrativo.
+- CORS, permissões e validação JWT do back-end precisam de testes.
+- Não foi executado build/teste Flutter neste ambiente.
+- Build nativo iOS requer macOS/Xcode.
