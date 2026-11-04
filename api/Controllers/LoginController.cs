@@ -14,21 +14,10 @@ namespace api.Controllers
         // POST: /api/login
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<EmptyResponse>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> Post([FromBody] LoginRequest request)
         {
-            var result = await _authService.AuthenticateAsync(request);
-
-            if (!result.HasValue)
-            {
-                return Unauthorized(
-                    ApiResponse.Fail<LoginResponse>(
-                        new ApiError("INVALID_CREDENTIALS", "Login ou senha inválidos.")
-                    )
-                );
-            }
-
-            var loginResponse = result.Value;
+            var loginResponse = await _authService.AuthenticateAsync(request);
             return Ok(ApiResponse.Ok(loginResponse));
         }
     }

@@ -29,13 +29,14 @@ namespace api.Controllers
             if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var funcionarioId))
                 return Unauthorized();
             if (!await _service.CompleteMyToday(id, funcionarioId))
-                return Conflict(ApiResponse.Fail<EmptyResponse>(new ApiError("COMPLETE_FAILED",
-                    "O corte não está agendado para você hoje ou já foi finalizado.")));
+                return Conflict(new ErrorResponse("COMPLETE_FAILED",
+                    "O corte não está agendado para você hoje ou já foi finalizado."));
             return NoContent();
         }
 
         // GET: /api/agendamentos?date=2026-05-26
         [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<MinAgendamentoDTO[]>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<MinAgendamentoDTO[]>>> Get(
             [FromQuery] DateOnly? date
         )
@@ -46,46 +47,29 @@ namespace api.Controllers
 
         // POST: /api/agendamentos
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<AgendamentoResponseDTO>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ApiResponse<EmptyResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(
+            typeof(ApiResponse<AgendamentoResponseDTO>),
+            StatusCodes.Status201Created
+        )]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
         public async Task<ActionResult<ApiResponse<AgendamentoResponseDTO>>> Post(
             [FromBody] AgendamentoCreateDTO dto
         )
         {
             var result = await _service.CreateOne(dto);
-
-            if (!result.HasValue)
-            {
-                return BadRequest(
-                    ApiResponse.Fail<AgendamentoResponseDTO>(
-                        new ApiError("CREATE_FAILED", "Erro ao criar agendamento. Horário indisponível ou serviço não encontrado.")
-                    )
-                );
-            }
-
-            return CreatedAtAction(nameof(Get), new { }, ApiResponse.Ok(result.Value));
+            return CreatedAtAction(nameof(Get), new { }, ApiResponse.Ok(result));
         }
 
         // PATCH: /api/agendamentos/{id}
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ApiResponse<EmptyResponse>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> Patch(
-            Guid id,
-            [FromBody] AgendamentoUpdateDTO dto
-        )
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> Patch(Guid id, [FromBody] AgendamentoUpdateDTO dto)
         {
-            var result = await _service.UpdateStatus(id, dto.Status);
-
-            if (!result.HasValue)
-            {
-                return BadRequest(
-                    ApiResponse.Fail<EmptyResponse>(
-                        new ApiError("UPDATE_FAILED", "Agendamento não encontrado ou status inválido.")
-                    )
-                );
-            }
-
+            await _service.UpdateStatus(id, dto.Status);
             return NoContent();
         }
     }

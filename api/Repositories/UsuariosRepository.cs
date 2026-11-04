@@ -1,5 +1,4 @@
 using api.Data;
-using api.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -12,9 +11,9 @@ namespace api.Repositories
         private readonly AppDbContext _context = context;
 
         /// <summary>
-        /// Finds a user by login and password, returning employee data if verified.
+        /// Finds a user by login and password, returning employee data if verified or null if not found.
         /// </summary>
-        public async Task<Maybe<(Guid IdFuncionario, string NomeFuncionario, string Login)>> GetByLoginAndPassword(
+        public async Task<(Guid IdFuncionario, string NomeFuncionario, string Login)?> GetByLoginAndPassword(
             string login,
             string senha
         )
@@ -34,10 +33,10 @@ namespace api.Repositories
 
             if (user != null)
             {
-                return new Maybe<(Guid, string, string)>((user.IdFuncionario, user.NomeFuncionario, user.Login));
+                return (user.IdFuncionario, user.NomeFuncionario, user.Login);
             }
 
-            return new Maybe<(Guid, string, string)>(ErrorCodes.NotFound);
+            return null;
         }
     }
 }

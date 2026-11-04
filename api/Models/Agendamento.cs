@@ -47,7 +47,8 @@ namespace api.Models
         public double? ValorTotal { get; set; }
 
         // Navegação para a lista de serviços associados a este agendamento
-        public ICollection<ServicoRealizado> ServicosRealizados { get; set; } = new List<ServicoRealizado>();
+        public ICollection<ServicoRealizado> ServicosRealizados { get; set; } =
+            new List<ServicoRealizado>();
 
         public Agendamento(
             Guid id,

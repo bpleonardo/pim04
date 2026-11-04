@@ -1,16 +1,29 @@
+using System.Text.Json.Serialization;
+
 namespace api.Utilities
 {
-    public sealed record ApiError(string Code, string Message);
-
     public static class ApiResponse
     {
-        public static ApiResponse<T> Ok<T>(T data) => new(Success: true, Data: data, Error: null);
-
-        public static ApiResponse<T> Fail<T>(ApiError error) =>
-            new(Success: false, Data: default, Error: error);
+        /// <summary>
+        /// Creates a successful API response with the provided data.
+        /// This is only here to avoid having to write the generic type parameter when returning a successful response.
+        /// </summary>
+        public static ApiResponse<T> Ok<T>(T data) => new(Success: true, Data: data);
     }
 
     public sealed record EmptyResponse();
 
-    public sealed record ApiResponse<T>(bool Success, T? Data, ApiError? Error);
+    public sealed record ApiResponse<T>(
+        [property: JsonPropertyName("success")] bool Success,
+        [property: JsonPropertyName("data")] T? Data
+    );
+
+    /// <summary>
+    /// Standard error response contract for all handled API errors.
+    /// </summary>
+    public sealed record ErrorResponse(
+        [property: JsonPropertyName("code")] string Code,
+        [property: JsonPropertyName("error")] string Error,
+        [property: JsonPropertyName("success")] bool Success = false
+    );
 }

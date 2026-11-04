@@ -1,7 +1,6 @@
 using api.Data;
 using api.DTOs;
 using api.Models;
-using api.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -35,9 +34,9 @@ namespace api.Repositories
         }
 
         /// <summary>
-        /// Retrieves a client by its unique identifier.
+        /// Retrieves a client by its unique identifier or null if not found.
         /// </summary>
-        public async Task<Maybe<ClienteDTO>> GetOne(Guid id)
+        public async Task<ClienteDTO?> GetOne(Guid id)
         {
             var cliente = await _context.Clientes
                 .AsNoTracking()
@@ -45,21 +44,19 @@ namespace api.Repositories
 
             if (cliente != null)
             {
-                return new Maybe<ClienteDTO>(
-                    new ClienteDTO(
-                        cliente.Id,
-                        cliente.Nome,
-                        cliente.Telefone ?? string.Empty,
-                        cliente.CPF,
-                        cliente.Email,
-                        cliente.DtNascimento.HasValue
-                            ? cliente.DtNascimento.Value.ToDateTime(TimeOnly.MinValue)
-                            : null
-                    )
+                return new ClienteDTO(
+                    cliente.Id,
+                    cliente.Nome,
+                    cliente.Telefone ?? string.Empty,
+                    cliente.CPF,
+                    cliente.Email,
+                    cliente.DtNascimento.HasValue
+                        ? cliente.DtNascimento.Value.ToDateTime(TimeOnly.MinValue)
+                        : null
                 );
             }
 
-            return new Maybe<ClienteDTO>(ErrorCodes.NotFound);
+            return null;
         }
 
         /// <summary>

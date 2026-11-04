@@ -27,7 +27,7 @@ namespace api.Models
         public double Preco { get; set; }
 
         // Navegação para a tabela intermediária de serviços prestados
-        public ICollection<ServicoRealizado> ServicosRealizados { get; set; } = new List<ServicoRealizado>();
+        public ICollection<ServicoRealizado> ServicosRealizados { get; set; } = [];
 
         public Servico(Guid? id, string nome, string? descricao, double preco)
         {

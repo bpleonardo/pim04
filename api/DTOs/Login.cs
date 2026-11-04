@@ -13,14 +13,14 @@ namespace api.DTOs
         public string Senha { get; set; }
     }
 
-    public struct AuthUser
+    public readonly struct AuthUser
     {
         public Guid Id { get; init; }
         public string Nome { get; init; }
         public string Login { get; init; }
     }
 
-    public struct LoginResponse
+    public readonly struct LoginResponse
     {
         public string Token { get; init; }
         public AuthUser User { get; init; }

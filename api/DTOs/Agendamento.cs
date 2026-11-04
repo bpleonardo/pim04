@@ -59,7 +59,7 @@ namespace api.DTOs
         public string Status { get; set; }
     }
 
-    public struct AgendamentoResponseDTO
+    public readonly struct AgendamentoResponseDTO
     {
         public Guid Id { get; init; }
         public string NomeCliente { get; init; }

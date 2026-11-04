@@ -12,31 +12,14 @@ namespace api.Controllers
     {
         private readonly HorariosService _service = horariosService;
 
+        // GET: /api/horarios?date=2026-05-26
         [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<List<HorarioDTO>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<List<HorarioDTO>>>> GetHorarios(
             [FromQuery(Name = "date"), BindRequired] DateOnly date
         )
         {
-            if (date < DateOnly.FromDateTime(DateTime.Now))
-            {
-                return BadRequest(
-                    ApiResponse.Fail<List<HorarioDTO>>(
-                        new ApiError("INVALID_DATE", "A data deve ser hoje ou no futuro.")
-                    )
-                );
-            }
-            else if (date > DateOnly.FromDateTime(DateTime.Now).AddDays(14))
-            {
-                return BadRequest(
-                    ApiResponse.Fail<List<HorarioDTO>>(
-                        new ApiError(
-                            "INVALID_DATE",
-                            "A data deve estar dentro dos próximos 14 dias."
-                        )
-                    )
-                );
-            }
-
             var horarios = await _service.GetHorariosDisponiveis(date);
             return Ok(ApiResponse.Ok(horarios));
         }

@@ -23,40 +23,19 @@ namespace api.Controllers
         // GET: /api/funcionarios/{id}
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<FuncionarioDTO>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<FuncionarioDTO>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ApiResponse<FuncionarioDTO>>> Get(Guid id)
         {
             var funcionario = await _service.GetOne(id);
-
-            if (funcionario is null)
-                return NotFound(
-                    ApiResponse.Fail<FuncionarioDTO>(
-                        new ApiError("NOT_FOUND", "Funcionário não encontrado.")
-                    )
-                );
-
-            return Ok(ApiResponse.Ok(funcionario.Value));
+            return Ok(ApiResponse.Ok(funcionario));
         }
 
         // POST: /api/funcionarios
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ApiResponse<EmptyResponse>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<ApiResponse<EmptyResponse>>> Post(
-            [FromBody] FuncionarioCreateDTO dto
-        )
+        public async Task<ActionResult> Post([FromBody] FuncionarioCreateDTO dto)
         {
-            var result = await _service.CreateOne(dto);
-
-            if (!result.HasValue)
-            {
-                return BadRequest(
-                    ApiResponse.Fail<EmptyResponse>(
-                        new ApiError("CREATE_FAILED", "Erro ao criar funcionário.")
-                    )
-                );
-            }
-
+            await _service.CreateOne(dto);
             return NoContent();
         }
     }
