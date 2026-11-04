@@ -54,6 +54,20 @@ namespace api
             builder.Services.AddScoped<Services.DashboardService>();
             builder.Services.AddScoped<Services.FinanceiroService>();
 
+            // O Flutter Web usa uma porta local variável durante o desenvolvimento.
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddCors(options =>
+                    options.AddPolicy("FlutterLocal", policy =>
+                        policy
+                            .SetIsOriginAllowed(origin =>
+                                Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                                && uri.IsLoopback
+                                && (uri.Scheme == "http" || uri.Scheme == "https"))
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()));
+            }
+
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();
@@ -84,6 +98,11 @@ namespace api
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI();
+            }
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseCors("FlutterLocal");
             }
 
             app.UseAuthorization();
