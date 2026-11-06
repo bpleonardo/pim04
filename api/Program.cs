@@ -71,14 +71,19 @@ namespace api
                             .AllowAnyMethod()));
             }
 
+            var jwtSecret = Environment.GetEnvironmentVariable("JWT_KEY");
+            if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+                throw new InvalidOperationException("JWT_KEY must contain at least 32 bytes.");
+
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+            builder.Services.AddSingleton(signingKey);
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                            builder.Configuration["Jwt:Key"] ?? "your-secret-key-change-in-production")),
+                        IssuerSigningKey = signingKey,
                         ValidateIssuer = true,
                         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "api",
                         ValidateAudience = true,

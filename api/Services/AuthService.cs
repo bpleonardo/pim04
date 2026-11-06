@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using api.DTOs;
 using api.Exceptions;
 using api.Repositories;
@@ -8,7 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace api.Services
 {
-    public class AuthService(UsuariosRepository repo, IConfiguration config)
+    public class AuthService(UsuariosRepository repo, IConfiguration config, SymmetricSecurityKey signingKey)
     {
         private readonly UsuariosRepository _repo = repo;
         private readonly IConfiguration _config = config;
@@ -25,39 +24,37 @@ namespace api.Services
                     "INVALID_CREDENTIALS"
                 );
 
-            var (idFuncionario, nomeFuncionario, login) = result;
+            var (employeeId, employeeName, login) = result;
 
-            var token = GenerateJwtToken(idFuncionario, login, nomeFuncionario);
+            var token = GenerateJwtToken(employeeId, login, employeeName);
 
             return new LoginResponse
             {
                 Token = token,
                 User = new AuthUser
                 {
-                    Id = idFuncionario,
-                    Nome = nomeFuncionario,
+                    Id = employeeId,
+                    Nome = employeeName,
                     Login = login,
                 },
             };
         }
 
-        private string GenerateJwtToken(Guid userId, string login, string nome)
+        private string GenerateJwtToken(Guid userId, string login, string name)
         {
-            var jwtKey = _config["Jwt:Key"] ?? "your-secret-key-change-in-production";
             var jwtIssuer = _config["Jwt:Issuer"] ?? "api";
             var jwtAudience = _config["Jwt:Audience"] ?? "client";
             var jwtExpirationMinutes = int.TryParse(_config["Jwt:ExpirationMinutes"], out var exp)
                 ? exp
                 : 60;
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Name, login),
-                new Claim("full_name", nome),
+                new Claim("full_name", name),
                 new Claim(ClaimTypes.Role, "staff"),
             };
 
