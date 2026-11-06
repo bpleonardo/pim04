@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/rotas.dart';
-import '../../models/usuario.dart';
-import '../../data/api/barbearia_api.dart';
-import '../../data/api/api_client.dart';
+import 'package:barbearia_frontend/core/routes.dart';
+import 'package:barbearia_frontend/models/user.dart';
+import 'package:barbearia_frontend/data/api/barbershop_api.dart';
+import 'package:barbearia_frontend/data/api/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,25 +12,25 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final form = GlobalKey<FormState>();
-  final login = TextEditingController(), senha = TextEditingController();
+  final login = TextEditingController(), password = TextEditingController();
   bool busy = false;
   @override
   void dispose() {
     login.dispose();
-    senha.dispose();
+    password.dispose();
     super.dispose();
   }
 
-  Future<void> entrar() async {
+  Future<void> signIn() async {
     if (!form.currentState!.validate()) return;
     setState(() => busy = true);
     try {
-      final result = await BarbeariaApi().login(login.text.trim(), senha.text);
-      final usuario =
-          Usuario.fromJson(Map<String, dynamic>.from(result['user']));
+      final result =
+          await BarbershopApi().login(login.text.trim(), password.text);
+      final user = User.fromJson(Map<String, dynamic>.from(result['user']));
       ApiClient.token = result['token'] as String;
-      ApiClient.usuario = usuario;
-      if (mounted) Navigator.pushReplacementNamed(context, Rotas.home);
+      ApiClient.user = user;
+      if (mounted) Navigator.pushReplacementNamed(context, Routes.home);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : null),
                         const SizedBox(height: 12),
                         TextFormField(
-                            controller: senha,
+                            controller: password,
                             obscureText: true,
                             decoration: const InputDecoration(
                                 labelText: 'Senha',
@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                                onPressed: busy ? null : entrar,
+                                onPressed: busy ? null : signIn,
                                 child: Text(busy ? 'Entrando...' : 'Entrar'))),
                       ]))))));
 }

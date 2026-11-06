@@ -3,7 +3,7 @@ import 'package:barbearia_frontend/main.dart';
 
 void main() {
   testWidgets('Tela de login é exibida', (tester) async {
-    await tester.pumpWidget(const BarbeariaApp());
+    await tester.pumpWidget(const BarbershopApp());
     expect(find.text('Entrar'), findsOneWidget);
   });
 }

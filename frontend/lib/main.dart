@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'core/tema.dart';
-import 'core/rotas.dart';
+import 'package:barbearia_frontend/core/barbershop_theme.dart';
+import 'package:barbearia_frontend/core/routes.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BarbeariaApp());
+  runApp(const BarbershopApp());
 }
 
-class BarbeariaApp extends StatelessWidget {
-  const BarbeariaApp({super.key});
+class BarbershopApp extends StatelessWidget {
+  const BarbershopApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'Barbearia',
         debugShowCheckedModeBanner: false,
-        theme: TemaApp.tema,
-        initialRoute: Rotas.login,
-        routes: Rotas.routes,
+        theme: BarbershopTheme.theme,
+        initialRoute: Routes.login,
+        routes: Routes.routes,
       );
 }

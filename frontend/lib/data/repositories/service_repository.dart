@@ -1,18 +1,18 @@
 import 'dart:convert';
-import '../../models/servico.dart';
-import '../api/barbearia_api.dart';
-import '../db/app_database.dart' show AppDatabase;
+import 'package:barbearia_frontend/models/service.dart';
+import 'package:barbearia_frontend/data/api/barbershop_api.dart';
+import 'package:barbearia_frontend/data/db/app_database.dart' show AppDatabase;
 import 'package:sqflite/sqflite.dart';
 
-class ServicoRepository {
-  final BarbeariaApi api = BarbeariaApi();
-  Future<List<Servico>> listar() async {
+class ServiceRepository {
+  final BarbershopApi api = BarbershopApi();
+  Future<List<Service>> list() async {
     try {
-      final dados = await api.servicos();
-      if (AppDatabase.disponivel) {
+      final records = await api.services();
+      if (AppDatabase.available) {
         final db = await AppDatabase.instance;
         final batch = db.batch();
-        for (final s in dados) {
+        for (final s in records) {
           batch.insert(
               'servicos_cache',
               {
@@ -24,14 +24,14 @@ class ServicoRepository {
         }
         await batch.commit(noResult: true);
       }
-      return dados;
+      return records;
     } catch (e) {
-      if (!AppDatabase.disponivel) rethrow;
+      if (!AppDatabase.available) rethrow;
       final db = await AppDatabase.instance;
       final rows = await db.query('servicos_cache');
       if (rows.isEmpty) rethrow;
       return rows
-          .map((r) => Servico.fromJson(
+          .map((r) => Service.fromJson(
               jsonDecode(r['json'] as String) as Map<String, dynamic>))
           .toList();
     }

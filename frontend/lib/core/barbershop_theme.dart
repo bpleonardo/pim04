@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class TemaApp {
-  static ThemeData get tema => ThemeData(
+class BarbershopTheme {
+  static ThemeData get theme => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.black, brightness: Brightness.light),

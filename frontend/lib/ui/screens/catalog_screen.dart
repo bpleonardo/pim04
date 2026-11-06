@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
-import '../../data/repositories/servico_repository.dart';
-import '../../models/servico.dart';
+import 'package:barbearia_frontend/data/repositories/service_repository.dart';
+import 'package:barbearia_frontend/models/service.dart';
 
-class CatalogoScreen extends StatefulWidget {
-  const CatalogoScreen({super.key});
+class CatalogScreen extends StatefulWidget {
+  const CatalogScreen({super.key});
   @override
-  State<CatalogoScreen> createState() => _CatalogoScreenState();
+  State<CatalogScreen> createState() => _CatalogScreenState();
 }
 
-class _CatalogoScreenState extends State<CatalogoScreen> {
-  late Future<List<Servico>> future;
+class _CatalogScreenState extends State<CatalogScreen> {
+  late Future<List<Service>> future;
   @override
   void initState() {
     super.initState();
-    future = ServicoRepository().listar();
+    future = ServiceRepository().list();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(title: const Text('Serviços')),
-      body: FutureBuilder<List<Servico>>(
+      body: FutureBuilder<List<Service>>(
           future: future,
           builder: (context, s) {
             if (s.connectionState != ConnectionState.done) {
@@ -33,9 +33,9 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             return ListView(children: [
               for (final x in list)
                 ListTile(
-                    title: Text(x.nome),
-                    subtitle: Text(x.descricao ?? ''),
-                    trailing: Text('R\$ ${x.preco.toStringAsFixed(2)}'))
+                    title: Text(x.name),
+                    subtitle: Text(x.description ?? ''),
+                    trailing: Text('R\$ ${x.price.toStringAsFixed(2)}'))
             ]);
           }));
 }

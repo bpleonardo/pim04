@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/rotas.dart';
-import '../../data/api/api_client.dart';
+import 'package:barbearia_frontend/core/routes.dart';
+import 'package:barbearia_frontend/data/api/api_client.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -9,9 +9,9 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Barbearia'), actions: [
         IconButton(
             onPressed: () {
-              ApiClient.sair();
+              ApiClient.signOut();
               Navigator.pushNamedAndRemoveUntil(
-                  context, Rotas.login, (_) => false);
+                  context, Routes.login, (_) => false);
             },
             icon: const Icon(Icons.logout))
       ]),
@@ -20,10 +20,10 @@ class HomeScreen extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 650),
               child: ListView(padding: const EdgeInsets.all(20), children: [
                 for (final item in [
-                  ('Serviços', Rotas.catalogo),
-                  ('Novo agendamento', Rotas.novo),
-                  ('Agenda', Rotas.agenda),
-                  ('Dashboard', Rotas.dashboard)
+                  ('Serviços', Routes.catalog),
+                  ('Novo agendamento', Routes.newAppointment),
+                  ('Agenda', Routes.agenda),
+                  ('Dashboard', Routes.dashboard)
                 ])
                   Card(
                       child: ListTile(

@@ -1,53 +1,53 @@
 import 'package:flutter/material.dart';
-import '../../data/api/barbearia_api.dart';
-import '../../models/servico.dart';
-import '../../models/funcionario.dart';
+import 'package:barbearia_frontend/data/api/barbershop_api.dart';
+import 'package:barbearia_frontend/models/service.dart';
+import 'package:barbearia_frontend/models/employee.dart';
 
-class AgendamentoScreen extends StatefulWidget {
-  const AgendamentoScreen({super.key});
+class NewAppointmentScreen extends StatefulWidget {
+  const NewAppointmentScreen({super.key});
   @override
-  State<AgendamentoScreen> createState() => _AgendamentoScreenState();
+  State<NewAppointmentScreen> createState() => _NewAppointmentScreenState();
 }
 
-class _AgendamentoScreenState extends State<AgendamentoScreen> {
-  final api = BarbeariaApi();
+class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
+  final api = BarbershopApi();
   final form = GlobalKey<FormState>();
-  final nome = TextEditingController(), telefone = TextEditingController();
-  late Future<void> carregamento;
-  List<Servico> servicos = [];
-  List<Funcionario> funcionarios = [];
-  String? servicoId, funcionarioId, slot;
-  DateTime dia = DateTime.now();
-  List<Map<String, dynamic>> horarios = [];
+  final name = TextEditingController(), phone = TextEditingController();
+  late Future<void> loading;
+  List<Service> services = [];
+  List<Employee> employees = [];
+  String? serviceId, employeeId, slot;
+  DateTime selectedDate = DateTime.now();
+  List<Map<String, dynamic>> timeSlots = [];
   bool busy = false;
   @override
   void initState() {
     super.initState();
-    carregamento = carregar();
+    loading = load();
   }
 
-  Future<void> carregar() async {
-    servicos = await api.servicos();
-    funcionarios = await api.funcionarios();
-    await buscarHorarios();
+  Future<void> load() async {
+    services = await api.services();
+    employees = await api.employees();
+    await loadTimeSlots();
   }
 
-  Future<void> buscarHorarios() async {
-    horarios = await api.horarios(dia);
+  Future<void> loadTimeSlots() async {
+    timeSlots = await api.timeSlots(selectedDate);
     slot = null;
   }
 
   @override
   void dispose() {
-    nome.dispose();
-    telefone.dispose();
+    name.dispose();
+    phone.dispose();
     super.dispose();
   }
 
-  Future<void> confirmar() async {
+  Future<void> confirm() async {
     if (!form.currentState!.validate() ||
-        servicoId == null ||
-        funcionarioId == null ||
+        serviceId == null ||
+        employeeId == null ||
         slot == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Selecione serviço, barbeiro e horário')));
@@ -55,18 +55,18 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
     }
     setState(() => busy = true);
     try {
-      final horario = slot!;
-      final parts = RegExp(r'\d{1,2}:\d{2}').firstMatch(horario);
-      if (parts == null) throw Exception('Horário inválido: $horario');
+      final selectedSlot = slot!;
+      final parts = RegExp(r'\d{1,2}:\d{2}').firstMatch(selectedSlot);
+      if (parts == null) throw Exception('Horário inválido: $selectedSlot');
       final hm = parts.group(0)!.split(':');
-      final data = DateTime(
-          dia.year, dia.month, dia.day, int.parse(hm[0]), int.parse(hm[1]));
-      await api.criar(
-          nome: nome.text.trim(),
-          telefone: telefone.text.trim(),
-          funcionarioId: funcionarioId!,
-          data: data,
-          servicos: [servicoId!]);
+      final scheduledAt = DateTime(selectedDate.year, selectedDate.month,
+          selectedDate.day, int.parse(hm[0]), int.parse(hm[1]));
+      await api.createAppointment(
+          name: name.text.trim(),
+          phone: phone.text.trim(),
+          employeeId: employeeId!,
+          scheduledAt: scheduledAt,
+          services: [serviceId!]);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Agendamento confirmado pela API')));
@@ -86,7 +86,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(title: const Text('Novo agendamento')),
       body: FutureBuilder<void>(
-          future: carregamento,
+          future: loading,
           builder: (context, s) {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
@@ -101,14 +101,14 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                             padding: const EdgeInsets.all(16),
                             children: [
                               TextFormField(
-                                  controller: nome,
+                                  controller: name,
                                   decoration: const InputDecoration(
                                       labelText: 'Nome do cliente'),
                                   validator: (v) => (v ?? '').trim().length < 3
                                       ? 'Nome obrigatório'
                                       : null),
                               TextFormField(
-                                  controller: telefone,
+                                  controller: phone,
                                   decoration: const InputDecoration(
                                       labelText:
                                           'Telefone (55 + DDD + número)'),
@@ -118,35 +118,35 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                       ? null
                                       : 'Informe 13 dígitos começando por 55'),
                               DropdownButtonFormField<String>(
-                                  initialValue: servicoId,
+                                  initialValue: serviceId,
                                   decoration: const InputDecoration(
                                       labelText: 'Serviço'),
                                   items: [
-                                    for (final x in servicos)
+                                    for (final x in services)
                                       DropdownMenuItem(
-                                          value: x.id, child: Text(x.nome))
+                                          value: x.id, child: Text(x.name))
                                   ],
                                   onChanged: (v) =>
-                                      setState(() => servicoId = v)),
+                                      setState(() => serviceId = v)),
                               DropdownButtonFormField<String>(
-                                  initialValue: funcionarioId,
+                                  initialValue: employeeId,
                                   decoration: const InputDecoration(
                                       labelText: 'Barbeiro'),
                                   items: [
-                                    for (final x in funcionarios)
+                                    for (final x in employees)
                                       DropdownMenuItem(
-                                          value: x.id, child: Text(x.nome))
+                                          value: x.id, child: Text(x.name))
                                   ],
                                   onChanged: (v) =>
-                                      setState(() => funcionarioId = v)),
+                                      setState(() => employeeId = v)),
                               ListTile(
                                   title: Text(
-                                      'Data: ${dia.day}/${dia.month}/${dia.year}'),
+                                      'Data: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
                                   trailing: const Icon(Icons.calendar_month),
                                   onTap: () async {
                                     final d = await showDatePicker(
                                         context: context,
-                                        initialDate: dia,
+                                        initialDate: selectedDate,
                                         firstDate: DateTime.now(),
                                         lastDate: DateTime.now()
                                             .add(const Duration(days: 14)));
@@ -154,8 +154,8 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                     if (d != null) {
                                       setState(() => busy = true);
                                       try {
-                                        dia = d;
-                                        await buscarHorarios();
+                                        selectedDate = d;
+                                        await loadTimeSlots();
                                       } catch (e) {
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context)
@@ -170,12 +170,12 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                     }
                                   }),
                               DropdownButtonFormField<String>(
-                                  key: ValueKey(dia),
+                                  key: ValueKey(selectedDate),
                                   initialValue: slot,
                                   decoration: const InputDecoration(
                                       labelText: 'Horário'),
                                   items: [
-                                    for (final h in horarios)
+                                    for (final h in timeSlots)
                                       if (h['available'] == true)
                                         DropdownMenuItem(
                                             value: h['slot'].toString(),
@@ -184,7 +184,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                   onChanged: (v) => setState(() => slot = v)),
                               const SizedBox(height: 20),
                               ElevatedButton(
-                                  onPressed: busy ? null : confirmar,
+                                  onPressed: busy ? null : confirm,
                                   child: Text(busy
                                       ? 'Aguarde...'
                                       : 'Confirmar agendamento')),

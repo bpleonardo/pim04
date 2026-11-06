@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/responsive/responsive_layout.dart';
+import 'package:barbearia_frontend/core/responsive/responsive_layout.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,7 +24,9 @@ class _LoginPageState extends State<LoginPage> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Integração com a API será implementada na próxima etapa.')),
+      const SnackBar(
+          content:
+              Text('Integração com a API será implementada na próxima etapa.')),
     );
   }
 
@@ -43,15 +45,22 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 56),
                   const Icon(Icons.content_cut, size: 48),
                   const SizedBox(height: 24),
-                  Text('Bem-vindo', textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  Text('Bem-vindo',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text('Acesse o painel da barbearia', textAlign: TextAlign.center),
+                  const Text('Acesse o painel da barbearia',
+                      textAlign: TextAlign.center),
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _loginController,
                     decoration: const InputDecoration(labelText: 'Login'),
-                    validator: (value) => value == null || value.trim().isEmpty ? 'Informe o login' : null,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Informe o login'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -60,16 +69,23 @@ class _LoginPageState extends State<LoginPage> {
                     decoration: InputDecoration(
                       labelText: 'Senha',
                       suffixIcon: IconButton(
-                        tooltip: _hidePassword ? 'Mostrar senha' : 'Ocultar senha',
-                        onPressed: () => setState(() => _hidePassword = !_hidePassword),
-                        icon: Icon(_hidePassword ? Icons.visibility_off : Icons.visibility),
+                        tooltip:
+                            _hidePassword ? 'Mostrar senha' : 'Ocultar senha',
+                        onPressed: () =>
+                            setState(() => _hidePassword = !_hidePassword),
+                        icon: Icon(_hidePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility),
                       ),
                     ),
-                    validator: (value) => value == null || value.isEmpty ? 'Informe a senha' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Informe a senha'
+                        : null,
                     onFieldSubmitted: (_) => _submit(),
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(onPressed: _submit, child: const Text('Entrar')),
+                  ElevatedButton(
+                      onPressed: _submit, child: const Text('Entrar')),
                 ],
               ),
             ),

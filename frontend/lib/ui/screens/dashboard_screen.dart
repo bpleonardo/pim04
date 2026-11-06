@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/api/barbearia_api.dart';
+import 'package:barbearia_frontend/data/api/barbershop_api.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -7,15 +7,15 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
       body: FutureBuilder<Map<String, dynamic>>(
-          future: BarbeariaApi().dashboard(),
+          future: BarbershopApi().dashboard(),
           builder: (context, s) {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
             }
             if (s.hasError) return Center(child: Text('Erro: ${s.error}'));
-            final indicadores = (s.data?['indicadores'] as List?) ?? [];
+            final indicators = (s.data?['indicadores'] as List?) ?? [];
             return ListView(padding: const EdgeInsets.all(16), children: [
-              for (final i in indicadores)
+              for (final i in indicators)
                 Card(
                     child: ListTile(
                         title: Text('${i['label']}'),

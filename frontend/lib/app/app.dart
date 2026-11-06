@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'routes/app_router.dart';
-import 'theme/app_theme.dart';
+import 'package:barbearia_frontend/app/routes/app_router.dart';
+import 'package:barbearia_frontend/app/theme/app_theme.dart';
 
-class BarbeariaApp extends StatelessWidget {
-  const BarbeariaApp({super.key});
+class BarbershopApp extends StatelessWidget {
+  const BarbershopApp({super.key});
 
   @override
   Widget build(BuildContext context) {
