@@ -29,11 +29,11 @@ class BarbeariaApi {
           .map((x) => Agendamento.fromJson(Map<String, dynamic>.from(x)))
           .toList();
   Future<List<Agendamento>> meusCortesHoje() async =>
-      (await _client.request('GET', '/api/Agendamentos/meus/hoje') as List)
+      (await _client.request('GET', '/api/agendamentos?mine=true') as List)
           .map((x) => Agendamento.fromJson(Map<String, dynamic>.from(x)))
           .toList();
   Future<void> concluirMeuCorte(String id) async {
-    await _client.request('PATCH', '/api/Agendamentos/meus/$id/concluir');
+    await status(id, 'concluido');
   }
 
   Future<void> criar(

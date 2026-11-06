@@ -6,33 +6,25 @@ using api.Repositories;
 namespace api.Services
 {
     public class AgendamentosService(
-        AgendamentosRepository agendamentosRepo,
-        ClientesRepository clientesRepo,
-        ServicosRepository servicosRepo,
-        HorariosRepository horariosRepo
+        AgendamentosRepository appointmentRepository,
+        ClientesRepository clientRepository,
+        ServicosRepository serviceRepository
     )
     {
-        private readonly AgendamentosRepository _agendamentosRepo = agendamentosRepo;
-        private readonly ClientesRepository _clientesRepo = clientesRepo;
-        private readonly ServicosRepository _servicosRepo = servicosRepo;
+        private readonly AgendamentosRepository _appointments = appointmentRepository;
+        private readonly ClientesRepository _clients = clientRepository;
+        private readonly ServicosRepository _services = serviceRepository;
 
-        private static DateOnly HojeNaBarbearia() => DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
-                TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo")));
-
-        public Task<MinAgendamentoDTO[]> GetMyToday(Guid funcionarioId) =>
-            _agendamentosRepo.GetByDate(HojeNaBarbearia(), funcionarioId);
-
-        public Task<bool> CompleteMyToday(Guid id, Guid funcionarioId) =>
-            _agendamentosRepo.CompleteToday(id, funcionarioId, HojeNaBarbearia());
-
-        /// <summary>
-        /// Retrieves all appointments for the specified date (or today if null).
-        /// </summary>
-        public async Task<MinAgendamentoDTO[]> GetAll(DateOnly? date = null)
+        public Task<MinAgendamentoDTO[]> GetAll(DateOnly? date, Guid? employeeId)
         {
-            return await _agendamentosRepo.GetByDate(date ?? DateOnly.FromDateTime(DateTime.Now));
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone);
+            return _appointments.GetByDate(date ?? DateOnly.FromDateTime(localNow), employeeId);
         }
+
+        public async Task<MinAgendamentoDTO> GetOne(Guid id, Guid? employeeId) =>
+            await _appointments.GetOne(id, employeeId)
+            ?? throw new ResourceNotFoundException("Agendamento não encontrado.");
 
         /// <summary>
         /// Creates a new appointment with auto-created client if needed, or throws ConflictException/ResourceNotFoundException.
@@ -40,7 +32,7 @@ namespace api.Services
         public async Task<AgendamentoResponseDTO> CreateOne(AgendamentoCreateDTO dto)
         {
             // 1. Validate slot availability
-            var isAvailable = await _agendamentosRepo.IsSlotAvailable(
+            var isAvailable = await _appointments.IsSlotAvailable(
                 dto.IdFuncionario,
                 dto.DataAgendamento
             );
@@ -50,11 +42,11 @@ namespace api.Services
             }
 
             // 2. Find or create cliente
-            Guid idCliente;
-            var clienteExistente = await _clientesRepo.CheckCPF(string.Empty);
+            Guid clientId;
+            var existingClient = await _clients.CheckCPF(string.Empty);
             // Por enquanto sempre cria um novo cliente
             {
-                var novoCliente = new Cliente(
+                var newClient = new Cliente(
                     null,
                     dto.NomeCliente,
                     dto.TelefoneCliente,
@@ -63,83 +55,83 @@ namespace api.Services
                     null
                 );
 
-                await _clientesRepo.CreateOne(
+                await _clients.CreateOne(
                     new ClienteDTO(
-                        novoCliente.Id,
-                        novoCliente.Nome,
-                        novoCliente.Telefone ?? string.Empty,
-                        novoCliente.CPF,
-                        novoCliente.Email,
-                        novoCliente.DtNascimento.HasValue
-                            ? novoCliente.DtNascimento.Value.ToDateTime(new TimeOnly(0, 0))
+                        newClient.Id,
+                        newClient.Nome,
+                        newClient.Telefone ?? string.Empty,
+                        newClient.CPF,
+                        newClient.Email,
+                        newClient.DtNascimento.HasValue
+                            ? newClient.DtNascimento.Value.ToDateTime(new TimeOnly(0, 0))
                             : null
                     )
                 );
 
-                idCliente = novoCliente.Id;
+                clientId = newClient.Id;
             }
 
             // 3. Calculate total from services
-            var servicosList = new List<ServicoDTO>();
+            var selectedServices = new List<ServicoDTO>();
             double total = 0;
 
-            foreach (var idServico in dto.IdServicos ?? [])
+            foreach (var serviceId in dto.IdServicos ?? [])
             {
-                var servico =
-                    await _servicosRepo.GetOne(idServico)
+                var service =
+                    await _services.GetOne(serviceId)
                     ?? throw new ResourceNotFoundException(
-                        $"Serviço com ID '{idServico}' não encontrado."
+                        $"Serviço com ID '{serviceId}' não encontrado."
                     );
 
-                servicosList.Add(servico);
-                total += servico.Preco;
+                selectedServices.Add(service);
+                total += service.Preco;
             }
 
-            // 4. Create agendamento
-            var agendamentoId = await _agendamentosRepo.CreateOne(
-                idCliente,
+            // 4. Create appointment
+            var appointmentId = await _appointments.CreateOne(
+                clientId,
                 dto.IdFuncionario,
                 dto.DataAgendamento,
                 total,
                 dto.IdServicos ?? []
             );
 
-            // 5. Fetch created agendamento and return
-            var agendamento =
-                await _agendamentosRepo.GetOne(agendamentoId)
+            // 5. Fetch created appointment and return
+            var createdAppointment =
+                await _appointments.GetOne(appointmentId)
                 ?? throw new ResourceNotFoundException("Agendamento não encontrado.");
 
-            var appt = agendamento;
             return new AgendamentoResponseDTO
             {
-                Id = appt.Id,
-                NomeCliente = appt.Cliente.Nome,
-                NomeFuncionario = appt.Funcionario.Nome,
-                DataAgendamento = appt.DataAgendamento,
-                Status = appt.Status,
-                Total = appt.Total,
-                Servicos = appt.Servicos.Select(s => s.Nome).ToArray(),
+                Id = createdAppointment.Id,
+                NomeCliente = createdAppointment.Cliente.Nome,
+                NomeFuncionario = createdAppointment.Funcionario.Nome,
+                DataAgendamento = createdAppointment.DataAgendamento,
+                Status = createdAppointment.Status,
+                Total = createdAppointment.Total,
+                Servicos = createdAppointment.Servicos.Select(s => s.Nome).ToArray(),
             };
         }
 
         /// <summary>
         /// Updates appointment status or throws ValidationException/ResourceNotFoundException.
         /// </summary>
-        public async Task UpdateStatus(Guid agendamentoId, string novoStatus)
+        public async Task UpdateStatus(Guid appointmentId, string status, Guid employeeId)
         {
             var validStatuses = new[] { "agendado", "concluido", "cancelado" };
-            if (!validStatuses.Contains(novoStatus))
+            if (!validStatuses.Contains(status))
             {
                 throw new ValidationException(
                     "Status inválido. Use: agendado, concluido ou cancelado."
                 );
             }
 
-            var updated = await _agendamentosRepo.UpdateStatus(agendamentoId, novoStatus);
-            if (!updated)
-            {
-                throw new ResourceNotFoundException("Agendamento não encontrado.");
-            }
+            var updated = await _appointments.UpdateStatus(appointmentId, status, employeeId);
+            if (updated) return;
+
+            var appointment = await GetOne(appointmentId, employeeId);
+            if (appointment.Status != status)
+                throw new ConflictException("O status atual do agendamento não permite essa alteração.");
         }
     }
 }

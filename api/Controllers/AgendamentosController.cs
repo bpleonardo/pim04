@@ -13,36 +13,25 @@ namespace api.Controllers
     {
         private readonly AgendamentosService _service = service;
 
-        [Authorize]
-        [HttpGet("meus/hoje")]
-        public async Task<ActionResult<ApiResponse<MinAgendamentoDTO[]>>> GetMyToday()
-        {
-            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var funcionarioId))
-                return Unauthorized();
-            return Ok(ApiResponse.Ok(await _service.GetMyToday(funcionarioId)));
-        }
-
-        [Authorize]
-        [HttpPatch("meus/{id:guid}/concluir")]
-        public async Task<ActionResult> CompleteMyToday(Guid id)
-        {
-            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var funcionarioId))
-                return Unauthorized();
-            if (!await _service.CompleteMyToday(id, funcionarioId))
-                return Conflict(new ErrorResponse("COMPLETE_FAILED",
-                    "O corte não está agendado para você hoje ou já foi finalizado."));
-            return NoContent();
-        }
-
-        // GET: /api/agendamentos?date=2026-05-26
-        [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<MinAgendamentoDTO[]>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<MinAgendamentoDTO[]>>> Get(
-            [FromQuery] DateOnly? date
+        [HttpGet("{id:guid?}")]
+        public async Task<ActionResult> Get(
+            Guid? id,
+            [FromQuery] DateOnly? date,
+            [FromQuery] bool mine = false
         )
         {
-            var agendamentos = await _service.GetAll(date);
-            return Ok(ApiResponse.Ok(agendamentos));
+            Guid? employeeId = null;
+            if (mine)
+            {
+                if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var ownerId))
+                    return Unauthorized();
+                employeeId = ownerId;
+            }
+
+            if (id is Guid appointmentId)
+                return Ok(ApiResponse.Ok(await _service.GetOne(appointmentId, employeeId)));
+
+            return Ok(ApiResponse.Ok(await _service.GetAll(date, employeeId)));
         }
 
         // POST: /api/agendamentos
@@ -59,17 +48,21 @@ namespace api.Controllers
         )
         {
             var result = await _service.CreateOne(dto);
-            return CreatedAtAction(nameof(Get), new { }, ApiResponse.Ok(result));
+            return CreatedAtAction(nameof(Get), new { id = result.Id }, ApiResponse.Ok(result));
         }
 
         // PATCH: /api/agendamentos/{id}
+        [Authorize]
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult> Patch(Guid id, [FromBody] AgendamentoUpdateDTO dto)
         {
-            await _service.UpdateStatus(id, dto.Status);
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId))
+                return Unauthorized();
+
+            await _service.UpdateStatus(id, dto.Status, employeeId);
             return NoContent();
         }
     }
