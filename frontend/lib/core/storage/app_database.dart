@@ -1,4 +1,4 @@
-import 'package:barbearia_frontend/core/app_platform.dart';
+import 'package:barbearia_frontend/core/responsive/app_platform.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 

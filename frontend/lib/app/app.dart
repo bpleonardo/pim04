@@ -13,6 +13,9 @@ class BarbershopApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: AppRouter.login,
       onGenerateRoute: AppRouter.onGenerateRoute,
+      onGenerateInitialRoutes: (name) => [
+        AppRouter.onGenerateRoute(RouteSettings(name: name)),
+      ],
     );
   }
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:barbearia_frontend/core/routes.dart';
-import 'package:barbearia_frontend/data/api/api_client.dart';
-import 'package:barbearia_frontend/data/repositories/appointment_repository.dart';
-import 'package:barbearia_frontend/models/appointment.dart';
-import 'package:barbearia_frontend/models/user.dart';
-import 'package:barbearia_frontend/ui/screens/daily_appointments_screen.dart';
-import 'package:barbearia_frontend/ui/screens/home_screen.dart';
+import 'package:barbearia_frontend/app/routes/app_router.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
+import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
+import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
+import 'package:barbearia_frontend/features/auth/models/user.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/daily_appointments_screen.dart';
+import 'package:barbearia_frontend/features/home/presentation/home_screen.dart';
 
 Appointment appointment(String id, String status) => Appointment(
     id: id,
@@ -79,17 +79,25 @@ void main() {
     for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
       debugDefaultTargetPlatformOverride = platform;
       for (final route in [
-        Routes.home,
-        Routes.catalog,
-        Routes.newAppointment,
-        Routes.agenda,
-        Routes.dashboard
+        AppRouter.home,
+        AppRouter.catalog,
+        AppRouter.newAppointment,
+        AppRouter.agenda,
+        AppRouter.dashboard
       ]) {
-        expect(Routes.routes[route]!(context), isA<DailyAppointmentsScreen>());
+        expect(
+            (AppRouter.onGenerateRoute(RouteSettings(name: route))
+                    as MaterialPageRoute<void>)
+                .builder(context),
+            isA<DailyAppointmentsScreen>());
       }
     }
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-    expect(Routes.routes[Routes.home]!(context), isA<HomeScreen>());
+    expect(
+        (AppRouter.onGenerateRoute(const RouteSettings(name: AppRouter.home))
+                as MaterialPageRoute<void>)
+            .builder(context),
+        isA<HomeScreen>());
     debugDefaultTargetPlatformOverride = null;
   });
 

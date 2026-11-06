@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'package:barbearia_frontend/models/service.dart';
-import 'package:barbearia_frontend/data/api/barbershop_api.dart';
-import 'package:barbearia_frontend/data/db/app_database.dart' show AppDatabase;
+import 'package:barbearia_frontend/features/catalog/models/service.dart';
+import 'package:barbearia_frontend/core/network/barbershop_api.dart';
+import 'package:barbearia_frontend/core/storage/app_database.dart'
+    show AppDatabase;
 import 'package:sqflite/sqflite.dart';
 
 class ServiceRepository {

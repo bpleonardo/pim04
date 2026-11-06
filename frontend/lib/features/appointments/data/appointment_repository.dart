@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:barbearia_frontend/core/shop_time.dart';
 
-import 'package:barbearia_frontend/data/api/api_client.dart';
-import 'package:barbearia_frontend/data/api/barbershop_api.dart';
-import 'package:barbearia_frontend/data/db/app_database.dart';
-import 'package:barbearia_frontend/models/appointment.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
+import 'package:barbearia_frontend/core/network/barbershop_api.dart';
+import 'package:barbearia_frontend/core/storage/app_database.dart';
+import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 import 'package:sqflite/sqflite.dart';
 
 enum CompletionState { pending, sent, rejected }

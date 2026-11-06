@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:barbearia_frontend/core/routes.dart';
-import 'package:barbearia_frontend/data/api/api_client.dart';
+import 'package:barbearia_frontend/app/routes/app_router.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,7 +11,7 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               ApiClient.signOut();
               Navigator.pushNamedAndRemoveUntil(
-                  context, Routes.login, (_) => false);
+                  context, AppRouter.login, (_) => false);
             },
             icon: const Icon(Icons.logout))
       ]),
@@ -20,10 +20,10 @@ class HomeScreen extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 650),
               child: ListView(padding: const EdgeInsets.all(20), children: [
                 for (final item in [
-                  ('Serviços', Routes.catalog),
-                  ('Novo agendamento', Routes.newAppointment),
-                  ('Agenda', Routes.agenda),
-                  ('Dashboard', Routes.dashboard)
+                  ('Serviços', AppRouter.catalog),
+                  ('Novo agendamento', AppRouter.newAppointment),
+                  ('Agenda', AppRouter.agenda),
+                  ('Dashboard', AppRouter.dashboard)
                 ])
                   Card(
                       child: ListTile(

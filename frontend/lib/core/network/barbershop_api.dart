@@ -1,7 +1,7 @@
-import 'package:barbearia_frontend/models/service.dart';
-import 'package:barbearia_frontend/models/employee.dart';
-import 'package:barbearia_frontend/models/appointment.dart';
-import 'package:barbearia_frontend/data/api/api_client.dart';
+import 'package:barbearia_frontend/features/catalog/models/service.dart';
+import 'package:barbearia_frontend/features/employees/models/employee.dart';
+import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
 
 class BarbershopApi {
   final ApiClient _client = ApiClient();

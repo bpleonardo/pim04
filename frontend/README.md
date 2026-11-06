@@ -49,7 +49,11 @@ O Android tem permissão de internet e permite HTTP local somente no build debug
 Para distribuição, configure a API com HTTPS. O token continua apenas em memória.
 
 ## Organização
-`lib/core`, `lib/data/api`, `lib/data/db`, `lib/data/repositories`, `lib/models`,
-`lib/ui/screens`, `lib/main.dart`. As camadas do professor e o PostgreSQL da API
-foram preservados. `test/daily_appointments_test.dart` verifica o novo fluxo e a separação
-de plataformas; `test/widget_test.dart` verifica a tela inicial.
+
+- `lib/main.dart` inicia o aplicativo em `lib/app/app.dart`.
+- `lib/app/` concentra o roteador e o tema.
+- `lib/core/` concentra configuração, cliente HTTP e armazenamento SQLite.
+- `lib/features/` agrupa as telas e os dados por funcionalidade.
+
+`test/daily_appointments_test.dart` verifica a agenda e a separação de plataformas.
+`test/widget_test.dart` verifica a tela inicial.

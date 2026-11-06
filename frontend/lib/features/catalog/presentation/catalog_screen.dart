@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:barbearia_frontend/data/repositories/service_repository.dart';
-import 'package:barbearia_frontend/models/service.dart';
+import 'package:barbearia_frontend/features/catalog/data/service_repository.dart';
+import 'package:barbearia_frontend/features/catalog/models/service.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});

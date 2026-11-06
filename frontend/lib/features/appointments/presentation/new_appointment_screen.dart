@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
-import 'package:barbearia_frontend/data/api/barbershop_api.dart';
-import 'package:barbearia_frontend/models/service.dart';
-import 'package:barbearia_frontend/models/employee.dart';
+import 'package:barbearia_frontend/core/network/barbershop_api.dart';
+import 'package:barbearia_frontend/features/catalog/models/service.dart';
+import 'package:barbearia_frontend/features/employees/models/employee.dart';
 
 class NewAppointmentScreen extends StatefulWidget {
   const NewAppointmentScreen({super.key});

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
-import 'package:barbearia_frontend/data/api/api_client.dart';
-import 'package:barbearia_frontend/models/appointment.dart';
-import 'package:barbearia_frontend/data/repositories/appointment_repository.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
+import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
+import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 
 class AppointmentListScreen extends StatefulWidget {
   const AppointmentListScreen({super.key});

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:barbearia_frontend/data/api/barbershop_api.dart';
+import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
