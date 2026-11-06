@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/data/api/api_client.dart';
 import 'package:barbearia_frontend/models/appointment.dart';
 import 'package:barbearia_frontend/data/repositories/appointment_repository.dart';
@@ -34,6 +35,15 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
     }
   }
 
+  String formatSchedule(String value) {
+    final instant = DateTime.tryParse(value);
+    if (instant == null) return value;
+    final local = shopTime(instant);
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '${local.day}/${local.month}/${local.year} $hour:$minute';
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(title: const Text('Agenda'), actions: [
@@ -57,7 +67,7 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                     child: ListTile(
                         title: Text('${a.clientName} • ${a.employeeName}'),
                         subtitle: Text(
-                            '${a.scheduledAt} • ${a.status} • R\$ ${a.total.toStringAsFixed(2)}'),
+                            '${formatSchedule(a.scheduledAt)} • ${a.status} • R\$ ${a.total.toStringAsFixed(2)}'),
                         trailing: ApiClient.user?.id != a.employeeId
                             ? null
                             : PopupMenuButton<String>(

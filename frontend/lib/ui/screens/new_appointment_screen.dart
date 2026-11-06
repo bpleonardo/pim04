@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/data/api/barbershop_api.dart';
 import 'package:barbearia_frontend/models/service.dart';
 import 'package:barbearia_frontend/models/employee.dart';
@@ -17,7 +18,7 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
   List<Service> services = [];
   List<Employee> employees = [];
   String? serviceId, employeeId, slot;
-  DateTime selectedDate = DateTime.now();
+  DateTime selectedDate = shopTime(DateTime.now());
   List<Map<String, dynamic>> timeSlots = [];
   bool busy = false;
   @override
@@ -45,6 +46,7 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
   }
 
   Future<void> confirm() async {
+    if (busy) return;
     if (!form.currentState!.validate() ||
         serviceId == null ||
         employeeId == null ||
@@ -59,8 +61,8 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
       final parts = RegExp(r'\d{1,2}:\d{2}').firstMatch(selectedSlot);
       if (parts == null) throw Exception('Horário inválido: $selectedSlot');
       final hm = parts.group(0)!.split(':');
-      final scheduledAt = DateTime(selectedDate.year, selectedDate.month,
-          selectedDate.day, int.parse(hm[0]), int.parse(hm[1]));
+      final scheduledAt =
+          shopSlotToUtc(selectedDate, int.parse(hm[0]), int.parse(hm[1]));
       await api.createAppointment(
           name: name.text.trim(),
           phone: phone.text.trim(),
@@ -143,32 +145,43 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
                                   title: Text(
                                       'Data: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
                                   trailing: const Icon(Icons.calendar_month),
-                                  onTap: () async {
-                                    final d = await showDatePicker(
-                                        context: context,
-                                        initialDate: selectedDate,
-                                        firstDate: DateTime.now(),
-                                        lastDate: DateTime.now()
-                                            .add(const Duration(days: 14)));
-                                    if (!context.mounted) return;
-                                    if (d != null) {
-                                      setState(() => busy = true);
-                                      try {
-                                        selectedDate = d;
-                                        await loadTimeSlots();
-                                      } catch (e) {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(SnackBar(
-                                                  content: Text('$e')));
-                                        }
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() => busy = false);
-                                        }
-                                      }
-                                    }
-                                  }),
+                                  onTap: busy
+                                      ? null
+                                      : () async {
+                                          final firstDate =
+                                              shopTime(DateTime.now());
+                                          final d = await showDatePicker(
+                                              context: context,
+                                              initialDate: selectedDate
+                                                      .isBefore(firstDate)
+                                                  ? firstDate
+                                                  : selectedDate,
+                                              firstDate: firstDate,
+                                              lastDate: firstDate.add(
+                                                  const Duration(days: 14)));
+                                          if (!context.mounted) return;
+                                          if (d != null) {
+                                            setState(() {
+                                              busy = true;
+                                              selectedDate = d;
+                                              slot = null;
+                                              timeSlots = [];
+                                            });
+                                            try {
+                                              await loadTimeSlots();
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                        content: Text('$e')));
+                                              }
+                                            } finally {
+                                              if (mounted) {
+                                                setState(() => busy = false);
+                                              }
+                                            }
+                                          }
+                                        }),
                               DropdownButtonFormField<String>(
                                   key: ValueKey(selectedDate),
                                   initialValue: slot,

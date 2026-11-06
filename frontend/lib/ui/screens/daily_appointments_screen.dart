@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/core/routes.dart';
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/data/api/api_client.dart';
 import 'package:barbearia_frontend/data/repositories/appointment_repository.dart';
 import 'package:barbearia_frontend/models/appointment.dart';
@@ -55,7 +56,8 @@ class _DailyAppointmentsScreenState extends State<DailyAppointmentsScreen>
       if (mounted &&
           (lifecycle == null || lifecycle == AppLifecycleState.resumed) &&
           agenda.completions.containsValue(CompletionState.pending)) {
-        _retryTimer = Timer(const Duration(seconds: 30), refresh);
+        _retryTimer =
+            Timer.periodic(const Duration(seconds: 30), (_) => refresh());
       }
       return agenda;
     } finally {
@@ -126,12 +128,12 @@ class _DailyAppointmentsScreenState extends State<DailyAppointmentsScreen>
   String formatTime(Appointment appointment) {
     final scheduledAt = DateTime.tryParse(appointment.scheduledAt);
     if (scheduledAt == null) return 'Horário não informado';
-    final local = AppointmentRepository.shopTime(scheduledAt);
+    final local = shopTime(scheduledAt);
     return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   String get dateLabel {
-    final today = AppointmentRepository.shopTime(DateTime.now());
+    final today = shopTime(DateTime.now());
     const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
     return '${weekdays[today.weekday - 1]}, ${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
   }
