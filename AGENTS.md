@@ -28,3 +28,16 @@ Rules:
 - Mark deliberate simplifications that cut a real corner with a known ceiling (global lock, O(n²) scan, naive heuristic) with a `ponytail:` comment naming the ceiling and upgrade path.
 
 Not lazy about: understanding the problem (read it fully and trace the real flow before picking a rung, a small diff you don't understand is just laziness dressed up as efficiency), input validation at trust boundaries, error handling that prevents data loss, security, accessibility, the calibration real hardware needs (the platform is never the spec ideal, a clock drifts, a sensor reads off), anything explicitly requested. Lazy code without its check is unfinished: non-trivial logic leaves ONE runnable check behind, the smallest thing that fails if the logic breaks (an assert-based demo/self-check or one small test file; no frameworks, no fixtures). Trivial one-liners need no test.
+
+
+## Estrutura do frontend
+
+- Mantenha o padrão da main. O arquivo `frontend/lib/main.dart` inicia `app/app.dart`. Rotas e tema ficam em `app/`, serviços compartilhados em `core/` e telas, modelos e repositórios em `features/<feature>/`.
+- Use nomes em inglês, imports internos `package:barbearia_frontend/...` e `dart format`. Preserve os contratos públicos da API e as mensagens da interface em português.
+
+## Commits e arquivos locais
+
+- Divida o trabalho em commits coerentes por assunto. Mantenha mudanças dependentes juntas, com mensagens descritivas, e inclua apenas os arquivos e trechos daquele assunto.
+- Prepare caminhos ou trechos explicitamente. Evite `git add .` e `git add -A`. Revise os nomes e o diff preparado antes de cada commit.
+- Mantenha `.env`, suas variantes locais, `.vscode/settings.json`, credenciais, tokens, chaves privadas, dumps, bancos locais e dados reais fora dos commits. Use `.env.example` somente com valores fictícios ou vazios.
+- Envie alterações ao remoto somente mediante solicitação.

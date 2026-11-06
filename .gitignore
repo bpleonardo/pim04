@@ -785,3 +785,14 @@ lib/generated_plugin_registrant.dart
 # Local environment and editor settings
 .env
 .vscode/settings.json
+
+
+# Arquivos locais de ambiente e bancos de desenvolvimento
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
