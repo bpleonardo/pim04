@@ -4,13 +4,13 @@ import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 
-class AppointmentListScreen extends StatefulWidget {
-  const AppointmentListScreen({super.key});
+class AgendaScreen extends StatefulWidget {
+  const AgendaScreen({super.key});
   @override
-  State<AppointmentListScreen> createState() => _AppointmentListScreenState();
+  State<AgendaScreen> createState() => _AgendaScreenState();
 }
 
-class _AppointmentListScreenState extends State<AppointmentListScreen> {
+class _AgendaScreenState extends State<AgendaScreen> {
   final repo = AppointmentRepository();
   late Future<List<Appointment>> future;
   @override

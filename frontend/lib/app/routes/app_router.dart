@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/core/responsive/app_platform.dart';
-import 'package:barbearia_frontend/features/appointments/presentation/daily_appointments_screen.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/cortes_dia_screen.dart';
 import 'package:barbearia_frontend/features/auth/presentation/login_page.dart';
 import 'package:barbearia_frontend/features/home/presentation/home_screen.dart';
-import 'package:barbearia_frontend/features/catalog/presentation/catalog_screen.dart';
-import 'package:barbearia_frontend/features/appointments/presentation/new_appointment_screen.dart';
-import 'package:barbearia_frontend/features/appointments/presentation/appointment_list_screen.dart';
+import 'package:barbearia_frontend/features/catalog/presentation/catalogo_screen.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/agendamento_screen.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/agenda_screen.dart';
 import 'package:barbearia_frontend/features/dashboard/presentation/dashboard_screen.dart';
 
 class AppRouter {
@@ -19,21 +19,16 @@ class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final page = switch (settings.name) {
       '/' || login => const LoginPage(),
-      home => AppPlatform.mobile
-          ? const DailyAppointmentsScreen()
-          : const HomeScreen(),
-      catalog => AppPlatform.mobile
-          ? const DailyAppointmentsScreen()
-          : const CatalogScreen(),
+      home => AppPlatform.mobile ? const CortesDiaScreen() : const HomeScreen(),
+      catalog =>
+        AppPlatform.mobile ? const CortesDiaScreen() : const CatalogoScreen(),
       newAppointment => AppPlatform.mobile
-          ? const DailyAppointmentsScreen()
-          : const NewAppointmentScreen(),
-      agenda => AppPlatform.mobile
-          ? const DailyAppointmentsScreen()
-          : const AppointmentListScreen(),
-      dashboard => AppPlatform.mobile
-          ? const DailyAppointmentsScreen()
-          : const DashboardScreen(),
+          ? const CortesDiaScreen()
+          : const AgendamentoScreen(),
+      agenda =>
+        AppPlatform.mobile ? const CortesDiaScreen() : const AgendaScreen(),
+      dashboard =>
+        AppPlatform.mobile ? const CortesDiaScreen() : const DashboardScreen(),
       _ => const Scaffold(body: Center(child: Text('Página não encontrada'))),
     };
     return MaterialPageRoute<void>(builder: (_) => page, settings: settings);

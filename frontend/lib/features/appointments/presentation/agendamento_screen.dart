@@ -4,13 +4,13 @@ import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 import 'package:barbearia_frontend/features/employees/models/employee.dart';
 
-class NewAppointmentScreen extends StatefulWidget {
-  const NewAppointmentScreen({super.key});
+class AgendamentoScreen extends StatefulWidget {
+  const AgendamentoScreen({super.key});
   @override
-  State<NewAppointmentScreen> createState() => _NewAppointmentScreenState();
+  State<AgendamentoScreen> createState() => _AgendamentoScreenState();
 }
 
-class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
+class _AgendamentoScreenState extends State<AgendamentoScreen> {
   final api = BarbershopApi();
   final form = GlobalKey<FormState>();
   final name = TextEditingController(), phone = TextEditingController();

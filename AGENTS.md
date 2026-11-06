@@ -33,7 +33,7 @@ Not lazy about: understanding the problem (read it fully and trace the real flow
 ## Estrutura do frontend
 
 - Mantenha o padrão da main. O arquivo `frontend/lib/main.dart` inicia `app/app.dart`. Rotas e tema ficam em `app/`, serviços compartilhados em `core/` e telas, modelos e repositórios em `features/<feature>/`.
-- Use nomes em inglês, imports internos `package:barbearia_frontend/...` e `dart format`. Preserve os contratos públicos da API e as mensagens da interface em português.
+- Use nomes em inglês, com exceção dos nomes de arquivos e classes das telas de agendamentos e catálogo do frontend, que usam português. Use imports internos `package:barbearia_frontend/...` e `dart format`. Preserve os contratos públicos da API e as mensagens da interface em português.
 
 ## Commits e arquivos locais
 

@@ -6,16 +6,15 @@ import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 
-class DailyAppointmentsScreen extends StatefulWidget {
-  const DailyAppointmentsScreen({super.key, this.repository});
+class CortesDiaScreen extends StatefulWidget {
+  const CortesDiaScreen({super.key, this.repository});
   final AppointmentRepository? repository;
 
   @override
-  State<DailyAppointmentsScreen> createState() =>
-      _DailyAppointmentsScreenState();
+  State<CortesDiaScreen> createState() => _CortesDiaScreenState();
 }
 
-class _DailyAppointmentsScreenState extends State<DailyAppointmentsScreen>
+class _CortesDiaScreenState extends State<CortesDiaScreen>
     with WidgetsBindingObserver {
   late final AppointmentRepository repo;
   late Future<DailyAgenda> future;

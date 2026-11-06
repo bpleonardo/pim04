@@ -6,7 +6,7 @@ import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 import 'package:barbearia_frontend/features/auth/models/user.dart';
-import 'package:barbearia_frontend/features/appointments/presentation/daily_appointments_screen.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/cortes_dia_screen.dart';
 import 'package:barbearia_frontend/features/home/presentation/home_screen.dart';
 
 Appointment appointment(String id, String status) => Appointment(
@@ -89,7 +89,7 @@ void main() {
             (AppRouter.onGenerateRoute(RouteSettings(name: route))
                     as MaterialPageRoute<void>)
                 .builder(context),
-            isA<DailyAppointmentsScreen>());
+            isA<CortesDiaScreen>());
       }
     }
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -104,8 +104,8 @@ void main() {
   testWidgets(
       'Mostra horário de São Paulo, serviço e só permite concluir pendente',
       (tester) async {
-    await tester.pumpWidget(MaterialApp(
-        home: DailyAppointmentsScreen(repository: FakeAgendaRepository())));
+    await tester.pumpWidget(
+        MaterialApp(home: CortesDiaScreen(repository: FakeAgendaRepository())));
     await tester.pumpAndSettle();
     expect(find.text('Ana Costa'), findsOneWidget);
     expect(find.text('10:00'), findsNWidgets(3));
@@ -119,8 +119,8 @@ void main() {
       'Cancelar confirmação não altera dados; confirmar recarrega e desabilita conclusão',
       (tester) async {
     final repo = FakeAgendaRepository();
-    await tester.pumpWidget(
-        MaterialApp(home: DailyAppointmentsScreen(repository: repo)));
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Concluir corte'));
     await tester.pumpAndSettle();
@@ -140,8 +140,8 @@ void main() {
   testWidgets('Falha ao concluir mantém pendente e permite tentar novamente',
       (tester) async {
     final repo = FakeAgendaRepository()..failCompletion = true;
-    await tester.pumpWidget(
-        MaterialApp(home: DailyAppointmentsScreen(repository: repo)));
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Concluir corte'));
     await tester.pumpAndSettle();
@@ -154,8 +154,8 @@ void main() {
 
   testWidgets('Tela vazia e erro de carga com nova tentativa', (tester) async {
     final repo = FakeAgendaRepository()..failLoad = true;
-    await tester.pumpWidget(
-        MaterialApp(home: DailyAppointmentsScreen(repository: repo)));
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
     await tester.pumpAndSettle();
     expect(find.text('Tentar novamente'), findsOneWidget);
     repo.failLoad = false;
@@ -168,8 +168,8 @@ void main() {
   testWidgets('Conclusão offline fica pendente até a sincronização',
       (tester) async {
     final repo = FakeAgendaRepository()..offline = true;
-    await tester.pumpWidget(
-        MaterialApp(home: DailyAppointmentsScreen(repository: repo)));
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Concluir corte'));
     await tester.pumpAndSettle();

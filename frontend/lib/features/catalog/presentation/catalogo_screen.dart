@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/features/catalog/data/service_repository.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 
-class CatalogScreen extends StatefulWidget {
-  const CatalogScreen({super.key});
+class CatalogoScreen extends StatefulWidget {
+  const CatalogoScreen({super.key});
   @override
-  State<CatalogScreen> createState() => _CatalogScreenState();
+  State<CatalogoScreen> createState() => _CatalogoScreenState();
 }
 
-class _CatalogScreenState extends State<CatalogScreen> {
+class _CatalogoScreenState extends State<CatalogoScreen> {
   late Future<List<Service>> future;
   @override
   void initState() {
