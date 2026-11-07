@@ -31,10 +31,18 @@ namespace api.Services
         /// </summary>
         public async Task<AgendamentoResponseDTO> CreateOne(AgendamentoCreateDTO dto)
         {
+            var scheduledAtUtc = dto.DataAgendamento.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dto.DataAgendamento, DateTimeKind.Utc)
+                : dto.DataAgendamento.ToUniversalTime();
+            if (scheduledAtUtc <= DateTime.UtcNow)
+            {
+                throw new ValidationException("Escolha um horário futuro para o agendamento.");
+            }
+
             // 1. Validate slot availability
             var isAvailable = await _appointments.IsSlotAvailable(
                 dto.IdFuncionario,
-                dto.DataAgendamento
+                scheduledAtUtc
             );
             if (!isAvailable)
             {
@@ -91,7 +99,7 @@ namespace api.Services
             var appointmentId = await _appointments.CreateOne(
                 clientId,
                 dto.IdFuncionario,
-                dto.DataAgendamento,
+                scheduledAtUtc,
                 total,
                 dto.IdServicos ?? []
             );
