@@ -36,9 +36,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
   }
 
   String formatSchedule(String value) {
-    final instant = DateTime.tryParse(value);
-    if (instant == null) return value;
-    final local = shopTime(instant);
+    final local = appointmentShopTime(value);
+    if (local == null) return value;
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '${local.day}/${local.month}/${local.year} $hour:$minute';

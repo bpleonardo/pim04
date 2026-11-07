@@ -125,10 +125,8 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
   }
 
   String formatTime(Appointment appointment) {
-    final scheduledAt = DateTime.tryParse(appointment.scheduledAt);
-    if (scheduledAt == null) return 'Horário não informado';
-    final local = shopTime(scheduledAt);
-    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    final local = appointmentShopTime(appointment.scheduledAt);
+    return local == null ? 'Horário não informado' : shopClockLabel(local);
   }
 
   String get dateLabel {

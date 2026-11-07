@@ -11,4 +11,14 @@ void main() {
     expect(lateSlot, DateTime.utc(2026, 11, 7, 1, 30));
     expect(shopTime(lateSlot), DateTime.utc(2026, 11, 6, 22, 30));
   });
+  test('Horários UTC, com GMT-3 e locais exibem a mesma hora', () {
+    for (final value in [
+      '2026-11-06T21:00:00Z',
+      '2026-11-06T18:00:00-03:00',
+      '2026-11-06T18:00:00',
+    ]) {
+      expect(shopClockLabel(appointmentShopTime(value)!), '18:00');
+    }
+    expect(appointmentShopTime('inválido'), isNull);
+  });
 }
