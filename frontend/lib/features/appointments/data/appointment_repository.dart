@@ -22,7 +22,9 @@ class DailyAgenda {
 class AppointmentRepository {
   final BarbershopApi api = BarbershopApi();
 
-  Future<List<Appointment>> list() => api.appointments();
+  Future<List<Appointment>> list({DateTime? date}) => api.appointments(
+        date: date?.toIso8601String().split('T').first,
+      );
 
   Future<void> updateStatus(String id, String status) =>
       api.updateStatus(id, status);

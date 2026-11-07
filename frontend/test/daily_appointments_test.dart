@@ -7,7 +7,7 @@ import 'package:barbearia_frontend/features/appointments/data/appointment_reposi
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 import 'package:barbearia_frontend/features/auth/models/user.dart';
 import 'package:barbearia_frontend/features/appointments/presentation/cortes_dia_screen.dart';
-import 'package:barbearia_frontend/features/home/presentation/home_screen.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/agenda_screen.dart';
 
 Appointment appointment(String id, String status) => Appointment(
     id: id,
@@ -20,6 +20,14 @@ Appointment appointment(String id, String status) => Appointment(
     services: const ['Corte']);
 
 class FakeAgendaRepository extends AppointmentRepository {
+  final requestedDates = <DateTime>[];
+
+  @override
+  Future<List<Appointment>> list({DateTime? date}) async {
+    if (date != null) requestedDates.add(date);
+    return items;
+  }
+
   List<Appointment> items = [
     appointment('1', 'agendado'),
     appointment('2', 'concluido'),
@@ -97,7 +105,7 @@ void main() {
         (AppRouter.onGenerateRoute(const RouteSettings(name: AppRouter.home))
                 as MaterialPageRoute<void>)
             .builder(context),
-        isA<HomeScreen>());
+        isA<AgendaScreen>());
     debugDefaultTargetPlatformOverride = null;
   });
 
@@ -186,6 +194,50 @@ void main() {
     expect(find.text('Aguardando sincronização'), findsNothing);
     expect(repo.queuedId, isNull);
     expect(repo.items.first.status, 'concluido');
+  });
+
+  testWidgets('Agenda larga mostra menu lateral e consulta a data escolhida',
+      (tester) async {
+    tester.view.physicalSize = const Size(1100, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = FakeAgendaRepository();
+    await tester.pumpWidget(MaterialApp(home: AgendaScreen(repository: repo)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('N&E'), findsOneWidget);
+    expect(find.text('Agendamentos'), findsOneWidget);
+    expect(find.text('Selecionar'), findsOneWidget);
+    expect(find.byTooltip('Novo agendamento'), findsOneWidget);
+    expect(find.text('10:00'), findsNWidgets(3));
+    final day = repo.requestedDates.single;
+    await tester.tap(find.byTooltip('Próximo dia'));
+    await tester.pumpAndSettle();
+    expect(
+        repo.requestedDates.last, DateTime(day.year, day.month, day.day + 1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Agenda estreita oferece menu compacto e botão de cadastro',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(home: AgendaScreen(repository: FakeAgendaRepository())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Agendamentos'), findsOneWidget);
+    expect(find.byTooltip('Novo agendamento'), findsOneWidget);
+    expect(find.text('N&E'), findsNothing);
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    expect(find.text('N&E'), findsOneWidget);
+    expect(find.text('Serviços'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   test('Converte dados da API sem perder barbeiro nem serviços', () {

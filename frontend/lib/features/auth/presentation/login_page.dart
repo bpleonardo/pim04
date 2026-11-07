@@ -22,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> signIn() async {
-    if (!form.currentState!.validate()) return;
+    if (busy || !form.currentState!.validate()) return;
     setState(() => busy = true);
     try {
       final result =
@@ -42,44 +42,65 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-      body: Center(
-          child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                      key: form,
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.content_cut, size: 52),
-                        const SizedBox(height: 16),
-                        const Text('Barbearia',
-                            style: TextStyle(
-                                fontSize: 28, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 24),
-                        TextFormField(
-                            controller: login,
-                            decoration: const InputDecoration(
-                                labelText: 'Login',
-                                border: OutlineInputBorder()),
-                            validator: (v) => (v == null || v.trim().length < 3)
-                                ? 'Informe seu login'
-                                : null),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                            controller: password,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                                labelText: 'Senha',
-                                border: OutlineInputBorder()),
-                            validator: (v) => (v == null || v.length < 6)
-                                ? 'Informe sua senha'
-                                : null),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                                onPressed: busy ? null : signIn,
-                                child: Text(busy ? 'Entrando...' : 'Entrar'))),
-                      ]))))));
+  Widget build(BuildContext context) {
+    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(14));
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F7F7),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Form(
+                key: form,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Login',
+                        style: Theme.of(context).textTheme.headlineMedium),
+                    const SizedBox(height: 32),
+                    TextFormField(
+                      controller: login,
+                      textInputAction: TextInputAction.next,
+                      decoration:
+                          InputDecoration(labelText: 'Usuário', border: border),
+                      validator: (value) => (value ?? '').trim().length < 3
+                          ? 'Informe seu login'
+                          : null,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: password,
+                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => signIn(),
+                      decoration:
+                          InputDecoration(labelText: 'Senha', border: border),
+                      validator: (value) =>
+                          (value ?? '').length < 6 ? 'Informe sua senha' : null,
+                    ),
+                    const SizedBox(height: 26),
+                    SizedBox(
+                      width: 180,
+                      child: OutlinedButton(
+                        onPressed: busy ? null : signIn,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(busy ? 'Entrando...' : 'Entrar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

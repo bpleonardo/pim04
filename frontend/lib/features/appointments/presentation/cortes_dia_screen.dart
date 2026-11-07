@@ -5,6 +5,7 @@ import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
+import 'package:barbearia_frontend/features/appointments/presentation/appointment_card.dart';
 
 class CortesDiaScreen extends StatefulWidget {
   const CortesDiaScreen({super.key, this.repository});
@@ -124,80 +125,27 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
     }
   }
 
-  String formatTime(Appointment appointment) {
-    final local = appointmentShopTime(appointment.scheduledAt);
-    return local == null ? 'Horário não informado' : shopClockLabel(local);
-  }
-
-  String get dateLabel {
-    final today = shopTime(DateTime.now());
-    const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-    return '${weekdays[today.weekday - 1]}, ${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
-  }
-
   Widget appointmentCard(Appointment appointment, CompletionState? completion) {
     final canComplete = appointment.status == 'agendado' && completion == null;
     final status = switch (completion) {
       CompletionState.pending => 'Aguardando sincronização',
       CompletionState.sent => 'Concluído',
       CompletionState.rejected => 'Sincronização recusada',
-      null => switch (appointment.status) {
-          'concluido' => 'Concluído',
-          'cancelado' => 'Cancelado',
-          'agendado' => 'Agendado',
-          _ => appointment.status,
-        },
+      null => appointmentStatusLabel(appointment.status),
     };
-    return Card(
-      margin: const EdgeInsets.only(bottom: 14),
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF303030)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-                child: Text(appointment.clientName,
-                    style: const TextStyle(
-                        fontSize: 19, fontWeight: FontWeight.w600))),
-            const SizedBox(width: 12),
-            Text(formatTime(appointment),
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ]),
-          const SizedBox(height: 8),
-          Text(appointment.services.isEmpty
-              ? 'Atendimento'
-              : appointment.services.join(' • ')),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-                child: Text(
-                    'R\$ ${appointment.total.toStringAsFixed(2).replaceAll('.', ',')}',
-                    style: const TextStyle(fontWeight: FontWeight.w600))),
-            Flexible(child: Text(status, textAlign: TextAlign.end)),
-          ]),
-          if (canComplete) ...[
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
+    return AppointmentCard(
+      appointment: appointment,
+      status: status,
+      action: canComplete
+          ? TextButton(
               onPressed: completingId != null
                   ? null
                   : () => completeAppointment(appointment),
-              icon: const Icon(Icons.check),
-              label: Text(completingId == appointment.id
+              child: Text(completingId == appointment.id
                   ? 'Aguarde...'
                   : 'Concluir corte'),
-              style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48)),
-            ),
-          ],
-        ]),
-      ),
+            )
+          : null,
     );
   }
 
@@ -205,22 +153,44 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: const Color(0xFFF7F7F7),
         appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: const Text('Cortes de hoje'),
-          actions: [
-            IconButton(
-                tooltip: 'Atualizar',
-                onPressed: refresh,
-                icon: const Icon(Icons.refresh)),
-            IconButton(
-                tooltip: 'Sair',
-                onPressed: () {
-                  ApiClient.signOut();
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, AppRouter.login, (_) => false);
-                },
-                icon: const Icon(Icons.logout)),
-          ],
+          title: const Text('Agendamentos'),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+        ),
+        drawer: Drawer(
+          child: SafeArea(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('N&E', style: TextStyle(fontSize: 24)),
+                ),
+                ListTile(
+                  selected: true,
+                  title: const Text('Agendamentos'),
+                  onTap: () => Navigator.pop(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.refresh),
+                  title: const Text('Atualizar'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    refresh();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Sair'),
+                  onTap: () {
+                    ApiClient.signOut();
+                    Navigator.pushNamedAndRemoveUntil(
+                        context, AppRouter.login, (_) => false);
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         body: SafeArea(
             child: Center(
@@ -252,8 +222,14 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                     ));
               }
               final agenda = snapshot.data!;
-              final appointments = [...agenda.appointments]
-                ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+              final appointments = [...agenda.appointments]..sort((a, b) {
+                  final first = appointmentShopTime(a.scheduledAt);
+                  final second = appointmentShopTime(b.scheduledAt);
+                  if (first == null || second == null) {
+                    return (first == null ? 1 : 0) - (second == null ? 1 : 0);
+                  }
+                  return first.compareTo(second);
+                });
               final pendingCount = appointments
                   .where((a) =>
                       a.status == 'agendado' &&
@@ -274,7 +250,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                         style: const TextStyle(
                             fontSize: 22, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
-                    Text(dateLabel),
+                    Text(shopDateLabel(shopTime(DateTime.now()))),
                     const SizedBox(height: 12),
                     Text(
                         '$pendingCount ${pendingCount == 1 ? 'pendente' : 'pendentes'} • $completedCount ${completedCount == 1 ? 'concluído' : 'concluídos'}'),
