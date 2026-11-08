@@ -5,19 +5,23 @@ import 'package:barbearia_frontend/features/catalog/models/service.dart';
 import 'package:barbearia_frontend/features/employees/models/employee.dart';
 
 class AgendamentoScreen extends StatefulWidget {
-  const AgendamentoScreen({super.key});
+  const AgendamentoScreen({super.key, this.api});
+
+  final BarbershopApi? api;
+
   @override
   State<AgendamentoScreen> createState() => _AgendamentoScreenState();
 }
 
 class _AgendamentoScreenState extends State<AgendamentoScreen> {
-  final api = BarbershopApi();
+  late final api = widget.api ?? BarbershopApi();
   final form = GlobalKey<FormState>();
   final name = TextEditingController(), phone = TextEditingController();
   late Future<void> loading;
   List<Service> services = [];
   List<Employee> employees = [];
-  String? serviceId, employeeId, slot;
+  final selectedServiceIds = <String>{};
+  String? employeeId, slot;
   DateTime selectedDate = shopTime(DateTime.now());
   List<Map<String, dynamic>> timeSlots = [];
   bool busy = false;
@@ -48,11 +52,12 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   Future<void> confirm() async {
     if (busy) return;
     if (!form.currentState!.validate() ||
-        serviceId == null ||
+        selectedServiceIds.isEmpty ||
         employeeId == null ||
         slot == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Selecione serviço, barbeiro e horário')));
+          content:
+              Text('Selecione pelo menos um serviço, o barbeiro e o horário')));
       return;
     }
     setState(() => busy = true);
@@ -68,7 +73,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
           phone: phone.text.trim(),
           employeeId: employeeId!,
           scheduledAt: scheduledAt,
-          services: [serviceId!]);
+          services: selectedServiceIds.toList());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Agendamento confirmado pela API')));
@@ -121,17 +126,32 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                       ? null
                                       : 'Informe 13 dígitos começando por 55'),
                               const SizedBox(height: 16),
-                              DropdownButtonFormField<String>(
-                                  initialValue: serviceId,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Serviço'),
-                                  items: [
-                                    for (final x in services)
-                                      DropdownMenuItem(
-                                          value: x.id, child: Text(x.name))
-                                  ],
-                                  onChanged: (v) =>
-                                      setState(() => serviceId = v)),
+                              Text('Serviços',
+                                  style:
+                                      Theme.of(context).textTheme.titleSmall),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  for (final service in services)
+                                    FilterChip(
+                                      label: Text(service.name),
+                                      selected: selectedServiceIds
+                                          .contains(service.id),
+                                      onSelected: busy
+                                          ? null
+                                          : (selected) => setState(() {
+                                                if (selected) {
+                                                  selectedServiceIds
+                                                      .add(service.id);
+                                                } else {
+                                                  selectedServiceIds
+                                                      .remove(service.id);
+                                                }
+                                              }),
+                                    ),
+                                ],
+                              ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
                                   initialValue: employeeId,
