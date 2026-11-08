@@ -13,6 +13,10 @@ class AppTheme {
           outline: const Color(0xFF303030),
         ),
         scaffoldBackgroundColor: Colors.white,
+        drawerTheme: const DrawerThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
