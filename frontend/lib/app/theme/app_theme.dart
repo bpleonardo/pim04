@@ -14,7 +14,23 @@ class AppTheme {
         ),
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.black, foregroundColor: Colors.white),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          scrolledUnderElevation: 0,
+          shape: Border(bottom: BorderSide(color: Color(0xFF303030))),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF303030)),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black, foregroundColor: Colors.white)),

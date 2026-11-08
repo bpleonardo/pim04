@@ -109,6 +109,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                   validator: (v) => (v ?? '').trim().length < 3
                                       ? 'Nome obrigatório'
                                       : null),
+                              const SizedBox(height: 16),
                               TextFormField(
                                   controller: phone,
                                   decoration: const InputDecoration(
@@ -119,6 +120,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                           .hasMatch(v ?? '')
                                       ? null
                                       : 'Informe 13 dígitos começando por 55'),
+                              const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
                                   initialValue: serviceId,
                                   decoration: const InputDecoration(
@@ -130,6 +132,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                   ],
                                   onChanged: (v) =>
                                       setState(() => serviceId = v)),
+                              const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
                                   initialValue: employeeId,
                                   decoration: const InputDecoration(
@@ -141,6 +144,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                   ],
                                   onChanged: (v) =>
                                       setState(() => employeeId = v)),
+                              const SizedBox(height: 16),
                               ListTile(
                                   title: Text(
                                       'Data: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
@@ -182,6 +186,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                             }
                                           }
                                         }),
+                              const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
                                   key: ValueKey(selectedDate),
                                   initialValue: slot,

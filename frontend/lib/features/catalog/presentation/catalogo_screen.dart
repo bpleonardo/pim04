@@ -30,12 +30,18 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             if (list.isEmpty) {
               return const Center(child: Text('Nenhum serviço cadastrado'));
             }
-            return ListView(children: [
-              for (final x in list)
-                ListTile(
-                    title: Text(x.name),
-                    subtitle: Text(x.description ?? ''),
-                    trailing: Text('R\$ ${x.price.toStringAsFixed(2)}'))
-            ]);
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final x in list)
+                  Card(
+                    child: ListTile(
+                      title: Text(x.name),
+                      subtitle: Text(x.description ?? ''),
+                      trailing: Text('R\$ ${x.price.toStringAsFixed(2)}'),
+                    ),
+                  ),
+              ],
+            );
           }));
 }
