@@ -37,6 +37,8 @@ class FakeAgendaRepository extends AppointmentRepository {
   bool failLoad = false;
   bool failCompletion = false;
   bool offline = false;
+  bool rejectQueuedCompletion = false;
+  String? rejectedId;
   String? queuedId;
   @override
   Future<DailyAgenda> loadToday() async {
@@ -45,13 +47,18 @@ class FakeAgendaRepository extends AppointmentRepository {
     if (id != null && !offline) {
       items = [
         for (final item in items)
-          item.id == id ? appointment(id, 'concluido') : item
+          item.id == id
+              ? appointment(
+                  id, rejectQueuedCompletion ? 'cancelado' : 'concluido')
+              : item
       ];
+      if (rejectQueuedCompletion) rejectedId = id;
       queuedId = null;
     }
     return DailyAgenda(items, offline: offline, completions: {
       if (queuedId case final String pendingId)
         pendingId: CompletionState.pending,
+      if (rejectedId case final String id) id: CompletionState.rejected,
     });
   }
 
@@ -194,6 +201,39 @@ void main() {
     expect(find.text('Aguardando sincronização'), findsNothing);
     expect(repo.queuedId, isNull);
     expect(repo.items.first.status, 'concluido');
+  });
+
+  testWidgets('Reconecta sem fila e atualiza a agenda salva', (tester) async {
+    final repo = FakeAgendaRepository()..offline = true;
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
+    await tester.pumpAndSettle();
+    expect(find.text('Sem conexão. Mostrando a agenda salva.'), findsOneWidget);
+
+    repo.offline = false;
+    repo.items = [appointment('1', 'concluido')];
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.text('Sem conexão. Mostrando a agenda salva.'), findsNothing);
+    expect(find.text('Concluído'), findsOneWidget);
+  });
+
+  testWidgets('Cancelamento no servidor prevalece sobre conclusão offline',
+      (tester) async {
+    final repo = FakeAgendaRepository()
+      ..offline = true
+      ..queuedId = '1'
+      ..rejectQueuedCompletion = true;
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
+    await tester.pumpAndSettle();
+
+    repo.offline = false;
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.text('Cancelado · Conclusão não sincronizada'), findsOneWidget);
+    expect(find.text('Aguardando sincronização'), findsNothing);
+    expect(find.text('Concluir corte'), findsNothing);
   });
 
   testWidgets('Agenda larga mostra menu lateral e consulta a data escolhida',

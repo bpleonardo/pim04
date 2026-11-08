@@ -50,18 +50,24 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
   Future<DailyAgenda> _load() async {
     _loading = true;
     _retryTimer?.cancel();
+    var shouldRetry = false;
     try {
       final agenda = await repo.loadToday();
+      shouldRetry = agenda.offline ||
+          agenda.completions.containsValue(CompletionState.pending);
+      return agenda;
+    } on ApiException catch (error) {
+      shouldRetry = error.retryable;
+      rethrow;
+    } finally {
+      _loading = false;
       final lifecycle = WidgetsBinding.instance.lifecycleState;
       if (mounted &&
           (lifecycle == null || lifecycle == AppLifecycleState.resumed) &&
-          agenda.completions.containsValue(CompletionState.pending)) {
+          shouldRetry) {
         _retryTimer =
             Timer.periodic(const Duration(seconds: 30), (_) => refresh());
       }
-      return agenda;
-    } finally {
-      _loading = false;
     }
   }
 
@@ -130,7 +136,8 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
     final status = switch (completion) {
       CompletionState.pending => 'Aguardando sincronização',
       CompletionState.sent => 'Concluído',
-      CompletionState.rejected => 'Sincronização recusada',
+      CompletionState.rejected =>
+        '${appointmentStatusLabel(appointment.status)} · Conclusão não sincronizada',
       null => appointmentStatusLabel(appointment.status),
     };
     return AppointmentCard(
@@ -262,7 +269,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                     if (agenda.completions
                         .containsValue(CompletionState.rejected))
                       const Text(
-                          'A API recusou uma ou mais conclusões. Confira a agenda com a barbearia.'),
+                          'Uma ou mais conclusões não foram aceitas. O status da agenda no servidor foi mantido.'),
                     const SizedBox(height: 22),
                     if (appointments.isEmpty)
                       const Padding(
