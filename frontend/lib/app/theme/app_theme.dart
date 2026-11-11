@@ -13,6 +13,14 @@ class AppTheme {
           outline: const Color(0xFF303030),
         ),
         scaffoldBackgroundColor: Colors.white,
+        chipTheme: const ChipThemeData(
+          backgroundColor: Colors.white,
+          selectedColor: Color(0xFFE9EDF0),
+          disabledColor: Color(0xFFF5F5F5),
+          side: BorderSide(color: Color(0xFF777777)),
+          labelStyle: TextStyle(color: Colors.black),
+          checkmarkColor: Colors.black,
+        ),
         drawerTheme: const DrawerThemeData(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
