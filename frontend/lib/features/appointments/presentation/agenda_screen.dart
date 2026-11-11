@@ -5,11 +5,13 @@ import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 import 'package:barbearia_frontend/features/appointments/presentation/appointment_card.dart';
+import 'package:barbearia_frontend/app/layout/desktop_layout.dart';
 
 class AgendaScreen extends StatefulWidget {
-  const AgendaScreen({super.key, this.repository});
+  const AgendaScreen({super.key, this.repository, this.embedded = false});
 
   final AppointmentRepository? repository;
+  final bool embedded;
 
   @override
   State<AgendaScreen> createState() => _AgendaScreenState();
@@ -64,6 +66,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
   }
 
   Future<void> createAppointment() async {
+    if (widget.embedded) {
+      DesktopLayout.of(context).open(AppRouter.newAppointment);
+      return;
+    }
     await Navigator.pushNamed(context, AppRouter.newAppointment);
     if (mounted) await refresh();
   }
@@ -78,66 +84,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
             .showSnackBar(SnackBar(content: Text('$error')));
       }
     }
-  }
-
-  Widget navigation({bool drawer = false}) {
-    void open(String route) {
-      if (drawer) Navigator.pop(context);
-      Navigator.pushNamed(context, route);
-    }
-
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text('N&E',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              children: [
-                ListTile(
-                  selected: true,
-                  selectedTileColor: const Color(0xFFE9E9E9),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  title: const Text('Agendamentos'),
-                  onTap: () {
-                    if (drawer) Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                    title: const Text('Serviços'),
-                    onTap: () => open(AppRouter.catalog)),
-                ListTile(
-                    title: const Text('Dashboard'),
-                    onTap: () => open(AppRouter.dashboard)),
-                ListTile(
-                    title: const Text('Atualizar'),
-                    onTap: () {
-                      if (drawer) Navigator.pop(context);
-                      refresh();
-                    }),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Sair'),
-            onTap: () {
-              ApiClient.signOut();
-              Navigator.pushNamedAndRemoveUntil(
-                  context, AppRouter.login, (_) => false);
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   Widget dateBar() => Container(
@@ -162,6 +108,50 @@ class _AgendaScreenState extends State<AgendaScreen> {
                 tooltip: 'Próximo dia',
                 onPressed: () => stepDate(1),
                 icon: const Icon(Icons.chevron_right)),
+          ],
+        ),
+      );
+
+  Widget mobileNavigation() => SafeArea(
+        child: ListView(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('N&E', style: TextStyle(fontSize: 24)),
+            ),
+            ListTile(
+              selected: true,
+              title: const Text('Agendamentos'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              title: const Text('Serviços'),
+              onTap: () => Navigator.pushNamed(context, AppRouter.catalog),
+            ),
+            ListTile(
+              title: const Text('Dashboard'),
+              onTap: () => Navigator.pushNamed(context, AppRouter.dashboard),
+            ),
+            ListTile(
+              leading: const Icon(Icons.refresh),
+              title: const Text('Atualizar'),
+              onTap: () {
+                Navigator.pop(context);
+                refresh();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Sair'),
+              onTap: () {
+                ApiClient.signOut();
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRouter.login,
+                  (_) => false,
+                );
+              },
+            ),
           ],
         ),
       );
@@ -223,20 +213,19 @@ class _AgendaScreenState extends State<AgendaScreen> {
         },
       );
 
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
+  Widget buildContent(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 760;
           return Scaffold(
             backgroundColor: const Color(0xFFF7F7F7),
-            appBar: wide
+            appBar: wide || widget.embedded
                 ? null
                 : AppBar(
                     title: const Text('Agendamentos'),
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                   ),
-            drawer: wide ? null : Drawer(child: navigation(drawer: true)),
+            drawer: wide ? null : Drawer(child: mobileNavigation()),
             floatingActionButton: FloatingActionButton(
               tooltip: 'Novo agendamento',
               backgroundColor: const Color(0xFFE9EDF0),
@@ -256,21 +245,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  if (wide) ...[
-                    SizedBox(
-                      width: 216,
-                      child: Material(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: Color(0xFF303030)),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: navigation(),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
                   Expanded(
                       child: Column(
                     children: [
@@ -284,4 +258,18 @@ class _AgendaScreenState extends State<AgendaScreen> {
           );
         },
       );
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.embedded) return buildContent(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) return buildContent(context);
+        return DesktopLayout(
+          initialRoute: AppRouter.home,
+          initialContent: buildContent(context),
+        );
+      },
+    );
+  }
 }

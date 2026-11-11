@@ -6,6 +6,7 @@ import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 import 'package:barbearia_frontend/features/appointments/presentation/appointment_card.dart';
+import 'package:barbearia_frontend/core/responsive/app_platform.dart';
 
 class CortesDiaScreen extends StatefulWidget {
   const CortesDiaScreen({super.key, this.repository});
@@ -186,6 +187,15 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                     refresh();
                   },
                 ),
+                if (AppPlatform.native)
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('Configurações'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, AppRouter.settingsRoute);
+                    },
+                  ),
                 ListTile(
                   leading: const Icon(Icons.logout),
                   title: const Text('Sair'),

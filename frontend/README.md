@@ -48,6 +48,12 @@ No Windows, troque o destino por `-d windows`.
 O Android tem permissão de internet e permite HTTP local somente no build debug.
 Para distribuição, configure a API com HTTPS. O token continua apenas em memória.
 
+Em Android/iOS, Windows, Linux e macOS, o ícone de configuração permite
+alterar a URL da API. A alteração só é salva após uma resposta `200` de
+`GET /ping`. A URL fica no SQLite apenas no mobile e em
+`config.json` no diretório de suporte da aplicação no desktop. Na Web, as
+requisições permanecem relativas à origem atual e a configuração fica oculta.
+
 ## Organização
 
 - `lib/main.dart` inicia o aplicativo em `lib/app/app.dart`.

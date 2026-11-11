@@ -1,8 +1,8 @@
-using api.Data;
 using System.Text;
+using api.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using static api.Utilities.Functions;
 
@@ -61,14 +61,19 @@ namespace api
             if (builder.Environment.IsDevelopment())
             {
                 builder.Services.AddCors(options =>
-                    options.AddPolicy("FlutterLocal", policy =>
-                        policy
-                            .SetIsOriginAllowed(origin =>
-                                Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-                                && uri.IsLoopback
-                                && (uri.Scheme == "http" || uri.Scheme == "https"))
-                            .AllowAnyHeader()
-                            .AllowAnyMethod()));
+                    options.AddPolicy(
+                        "FlutterLocal",
+                        policy =>
+                            policy
+                                .SetIsOriginAllowed(origin =>
+                                    Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                                    && uri.IsLoopback
+                                    && (uri.Scheme == "http" || uri.Scheme == "https")
+                                )
+                                .AllowAnyHeader()
+                                .AllowAnyMethod()
+                    )
+                );
             }
 
             var jwtSecret = Environment.GetEnvironmentVariable("JWT_KEY");
@@ -77,7 +82,8 @@ namespace api
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             builder.Services.AddSingleton(signingKey);
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            builder
+                .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
@@ -162,6 +168,7 @@ namespace api
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.MapGet("/api/ping", () => Results.Ok(new { status = "ok" }));
             app.MapControllers();
 
             await app.RunAsync();

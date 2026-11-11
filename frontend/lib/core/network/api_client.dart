@@ -19,7 +19,7 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  static const baseUrl = ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.baseUrl;
   static String? token;
   static User? user;
   static void signOut() {
