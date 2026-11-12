@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
@@ -7,10 +8,15 @@ import 'package:barbearia_frontend/features/employees/models/employee.dart';
 import 'package:barbearia_frontend/app/layout/desktop_layout.dart';
 
 class AgendamentoScreen extends StatefulWidget {
-  const AgendamentoScreen({super.key, this.api, this.embedded = false});
+  const AgendamentoScreen(
+      {super.key,
+      this.api,
+      this.embedded = false,
+      this.forCurrentEmployee = false});
 
   final BarbershopApi? api;
   final bool embedded;
+  final bool forCurrentEmployee;
 
   @override
   State<AgendamentoScreen> createState() => _AgendamentoScreenState();
@@ -35,8 +41,17 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   }
 
   Future<void> load() async {
+    if (widget.forCurrentEmployee) {
+      final user = ApiClient.user;
+      if (user == null || ApiClient.token == null) {
+        throw const ApiException('Entre novamente para agendar.', 401);
+      }
+      employeeId = user.id;
+      employees = [Employee(id: user.id, name: user.name)];
+    } else {
+      employees = await api.employees();
+    }
     services = await api.services();
-    employees = await api.employees();
     await loadTimeSlots();
   }
 
@@ -83,7 +98,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
         if (widget.embedded) {
           DesktopLayout.of(context).open(AppRouter.home);
         } else {
-          Navigator.pop(context);
+          Navigator.pop(context, selectedDate);
         }
       }
     } catch (e) {
@@ -160,7 +175,9 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                           for (final x in employees)
                             DropdownMenuItem(value: x.id, child: Text(x.name))
                         ],
-                        onChanged: (v) => setState(() => employeeId = v)),
+                        onChanged: widget.forCurrentEmployee || busy
+                            ? null
+                            : (v) => setState(() => employeeId = v)),
                     const SizedBox(height: 16),
                     ListTile(
                         title: Text(

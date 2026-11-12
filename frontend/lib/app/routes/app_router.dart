@@ -31,6 +31,12 @@ class AppRouter {
         settings: settings,
       );
     }
+    if (settings.name == newAppointment) {
+      return _SmoothPageRoute<DateTime>(
+        builder: (_) => const AgendamentoScreen(forCurrentEmployee: true),
+        settings: settings,
+      );
+    }
     final page = switch (settings.name) {
       '/' || login => const LoginPage(),
       home ||
@@ -42,9 +48,6 @@ class AppRouter {
               initialRoute: catalog,
               initialContent: const CatalogoScreen(),
             ),
-      newAppointment => AppPlatform.mobile
-          ? const CortesDiaScreen()
-          : const AgendamentoScreen(),
       dashboard => AppPlatform.mobile
           ? const CortesDiaScreen()
           : DesktopLayout(

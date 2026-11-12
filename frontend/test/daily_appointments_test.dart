@@ -41,7 +41,7 @@ class FakeAgendaRepository extends AppointmentRepository {
   String? rejectedId;
   String? queuedId;
   @override
-  Future<DailyAgenda> loadToday() async {
+  Future<DailyAgenda> loadDay(DateTime date) async {
     if (failLoad) throw Exception('Sem conexão');
     final id = queuedId;
     if (id != null && !offline) {
@@ -87,7 +87,7 @@ void main() {
     ApiClient.signOut();
   });
 
-  testWidgets('Android e iOS só oferecem a agenda diária nas rotas internas',
+  testWidgets('Android e iOS usam a agenda do barbeiro nas rotas de consulta',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: SizedBox()));
     final context = tester.element(find.byType(SizedBox).first);
@@ -96,7 +96,6 @@ void main() {
       for (final route in [
         AppRouter.home,
         AppRouter.catalog,
-        AppRouter.newAppointment,
         AppRouter.agenda,
         AppRouter.dashboard
       ]) {
@@ -177,7 +176,7 @@ void main() {
     repo.items = [];
     await tester.tap(find.text('Tentar novamente'));
     await tester.pumpAndSettle();
-    expect(find.text('Nenhum corte para você hoje.'), findsOneWidget);
+    expect(find.text('Nenhum agendamento para esta data.'), findsOneWidget);
   });
 
   testWidgets('Conclusão offline fica pendente até a sincronização',

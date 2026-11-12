@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:barbearia_frontend/core/shop_time.dart';
-
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 import 'package:barbearia_frontend/core/storage/app_database.dart';
@@ -38,9 +36,9 @@ class AppointmentRepository {
     return (scope: jsonEncode([ApiClient.baseUrl, employee.id]), token: token);
   }
 
-  Future<DailyAgenda> loadToday() async {
+  Future<DailyAgenda> loadDay(DateTime date) async {
     final session = _session();
-    final day = shopTime(DateTime.now()).toIso8601String().split('T').first;
+    final day = date.toIso8601String().split('T').first;
     final db = await AppDatabase.instance;
     List<Appointment> appointments;
     var offline = false;

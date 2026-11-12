@@ -22,6 +22,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
   late Future<DailyAgenda> future;
   Timer? _retryTimer;
   bool _loading = false;
+  DateTime _selectedDate = shopTime(DateTime.now());
   String? completingId;
 
   @override
@@ -53,7 +54,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
     _retryTimer?.cancel();
     var shouldRetry = false;
     try {
-      final agenda = await repo.loadToday();
+      final agenda = await repo.loadDay(_selectedDate);
       shouldRetry = agenda.offline ||
           agenda.completions.containsValue(CompletionState.pending);
       return agenda;
@@ -70,6 +71,26 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
             Timer.periodic(const Duration(seconds: 30), (_) => refresh());
       }
     }
+  }
+
+  Future<void> _pickDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100, 12, 31),
+    );
+    if (date == null || !mounted || _loading || completingId != null) return;
+    _selectedDate = date;
+    await refresh();
+  }
+
+  Future<void> _createAppointment() async {
+    final date =
+        await Navigator.pushNamed<DateTime>(context, AppRouter.newAppointment);
+    if (date == null || !mounted) return;
+    _selectedDate = date;
+    await refresh();
   }
 
   Future<void> refresh() async {
@@ -164,6 +185,19 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
           title: const Text('Agendamentos'),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
+          actions: [
+            IconButton(
+              onPressed: _loading || completingId != null ? null : _pickDate,
+              tooltip: 'Selecionar data',
+              icon: const Icon(Icons.calendar_month),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed:
+              _loading || completingId != null ? null : _createAppointment,
+          tooltip: 'Novo agendamento',
+          child: const Icon(Icons.add),
         ),
         drawer: Drawer(
           child: SafeArea(
@@ -216,8 +250,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
           child: FutureBuilder<DailyAgenda>(
             future: future,
             builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done &&
-                  !snapshot.hasData) {
+              if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
               }
               if (snapshot.hasError) {
@@ -229,7 +262,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                         const Icon(Icons.cloud_off_outlined, size: 40),
                         const SizedBox(height: 16),
                         const Text(
-                            'Não foi possível carregar os cortes de hoje. Confira a conexão. Se a sessão expirou, saia e entre novamente.',
+                            'Não foi possível carregar os agendamentos da data selecionada. Confira a conexão. Se a sessão expirou, saia e entre novamente.',
                             textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         ElevatedButton(
@@ -261,13 +294,13 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                 onRefresh: refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 88),
                   children: [
                     Text(ApiClient.user?.name ?? 'Barbeiro',
                         style: const TextStyle(
                             fontSize: 22, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
-                    Text(shopDateLabel(shopTime(DateTime.now()))),
+                    Text(shopDateLabel(_selectedDate)),
                     const SizedBox(height: 12),
                     Text(
                         '$pendingCount ${pendingCount == 1 ? 'pendente' : 'pendentes'} • $completedCount ${completedCount == 1 ? 'concluído' : 'concluídos'}'),
@@ -287,7 +320,7 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                           child: Column(children: [
                             Icon(Icons.event_available_outlined, size: 48),
                             SizedBox(height: 16),
-                            Text('Nenhum corte para você hoje.',
+                            Text('Nenhum agendamento para esta data.',
                                 textAlign: TextAlign.center),
                             SizedBox(height: 8),
                             Text('Puxe para baixo para atualizar.',

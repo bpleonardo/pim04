@@ -1,9 +1,11 @@
 # Barbearia Flutter
 
 ## Fluxo mobile do barbeiro (Android/iOS)
-Depois do login, o aplicativo nativo abre diretamente **Cortes de hoje**.
-Mostra somente os atendimentos atribuídos ao funcionário do token, no dia atual
-em America/Sao_Paulo, com cliente, horário, serviços, valor e status.
+Depois do login, o aplicativo nativo abre a agenda de hoje em America/Sao_Paulo.
+O calendário permite consultar os próprios atendimentos em datas passadas e
+futuras. O SQLite guarda uma cópia por data consultada. Com conexão, o botão
+**+** abre o cadastro com o barbeiro logado já definido. Preencha os dados do
+cliente e selecione os serviços e o horário.
 A ação **Concluir corte** pede confirmação e registra a alteração em SQLite
 antes de enviá-la à API. Se a conexão falhar, a tela mostra a agenda salva
 e indica a conclusão pendente. As pendências ficam separadas por funcionário

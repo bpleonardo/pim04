@@ -21,9 +21,17 @@ class AppDatabase {
 
   static Future<Database> _open() async {
     final path = join(await getDatabasesPath(), 'barbearia_cache.db');
-    return openDatabase(path, version: 3, onUpgrade: (db, oldVersion, _) async {
+    return openDatabase(path, version: 4, onUpgrade: (db, oldVersion, _) async {
       if (oldVersion < 2) await _createSyncTables(db);
       if (oldVersion < 3) await _createConfigTable(db);
+      if (oldVersion >= 2 && oldVersion < 4) {
+        await db
+            .execute('ALTER TABLE daily_agenda RENAME TO legacy_daily_agenda');
+        await _createAgendaTable(db);
+        await db.execute(
+            'INSERT INTO daily_agenda SELECT scope, day, json FROM legacy_daily_agenda');
+        await db.execute('DROP TABLE legacy_daily_agenda');
+      }
     }, onCreate: (db, version) async {
       await db.execute(
           'CREATE TABLE servicos_cache (id TEXT PRIMARY KEY, json TEXT NOT NULL, atualizado_em TEXT NOT NULL)');
@@ -57,10 +65,12 @@ class AppDatabase {
     );
   }
 
+  static Future<void> _createAgendaTable(Database db) => db.execute(
+        'CREATE TABLE daily_agenda (scope TEXT NOT NULL, day TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(scope, day))',
+      );
+
   static Future<void> _createSyncTables(Database db) async {
-    await db.execute(
-      'CREATE TABLE daily_agenda (scope TEXT PRIMARY KEY, day TEXT NOT NULL, json TEXT NOT NULL)',
-    );
+    await _createAgendaTable(db);
     await db.execute(
       'CREATE TABLE pending_completions (scope TEXT NOT NULL, appointment_id TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(scope, appointment_id))',
     );
