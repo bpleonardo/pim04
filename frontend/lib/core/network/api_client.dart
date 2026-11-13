@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:barbearia_frontend/core/config/api_config.dart';
 import 'package:barbearia_frontend/features/auth/models/user.dart';
 import 'package:http/http.dart' as http;
@@ -27,13 +28,21 @@ class ApiClient {
     user = null;
   }
 
+  static final _random = Random.secure();
+
+  static String newNonce() => List.generate(16, (_) => _random.nextInt(256))
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
+
   final http.Client _client = http.Client();
   Future<dynamic> request(String method, String path,
-      {Object? body, String? bearerToken}) async {
+      {Object? body, String? bearerToken, String? nonce}) async {
     final uri = Uri.parse('$baseUrl$path');
     final authorization = bearerToken ?? token;
     final headers = <String, String>{
       'Content-Type': 'application/json',
+      if (const {'POST', 'PUT', 'PATCH', 'DELETE'}.contains(method))
+        'Nonce': nonce ?? newNonce(),
       if (authorization != null) 'Authorization': 'Bearer $authorization'
     };
     late http.Response response;

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
@@ -34,6 +36,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   DateTime selectedDate = shopTime(DateTime.now());
   List<Map<String, dynamic>> timeSlots = [];
   bool busy = false;
+  String? _bookingKey, _bookingNonce;
   @override
   void initState() {
     super.initState();
@@ -87,12 +90,26 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
       final hm = parts.group(0)!.split(':');
       final scheduledAt =
           shopSlotToUtc(selectedDate, int.parse(hm[0]), int.parse(hm[1]));
+      final services = selectedServiceIds.toList()..sort();
+      final key = jsonEncode([
+        ApiClient.baseUrl,
+        name.text.trim(),
+        phone.text.trim(),
+        employeeId,
+        scheduledAt.toIso8601String(),
+        services,
+      ]);
+      if (_bookingKey != key) {
+        _bookingKey = key;
+        _bookingNonce = ApiClient.newNonce();
+      }
       await api.createAppointment(
           name: name.text.trim(),
           phone: phone.text.trim(),
           employeeId: employeeId!,
           scheduledAt: scheduledAt,
-          services: selectedServiceIds.toList());
+          services: services,
+          nonce: _bookingNonce);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Agendamento confirmado pela API')));
@@ -103,6 +120,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
         }
       }
     } catch (e) {
+      if (e is ApiException && !e.retryable) _bookingKey = null;
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$e')));

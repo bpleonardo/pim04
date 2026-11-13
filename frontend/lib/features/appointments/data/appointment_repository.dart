@@ -103,6 +103,7 @@ class AppointmentRepository {
           'scope': session.scope,
           'appointment_id': id,
           'state': CompletionState.pending.name,
+          'nonce': ApiClient.newNonce(),
         },
         conflictAlgorithm: ConflictAlgorithm.ignore);
     return _send(db, session, id);
@@ -127,9 +128,20 @@ class AppointmentRepository {
     ({String scope, String token}) session,
     String id,
   ) async {
+    final rows = await db.query(
+      'pending_completions',
+      where: 'scope = ? AND appointment_id = ?',
+      whereArgs: [session.scope, id],
+    );
+    if (rows.isEmpty) return CompletionState.sent;
+    final row = rows.single;
+    final current = CompletionState.values.byName(row['state'] as String);
+    if (current != CompletionState.pending) return current;
+    final nonce = row['nonce'] as String;
     var state = CompletionState.sent;
     try {
-      await api.updateStatus(id, 'concluido', bearerToken: session.token);
+      await api.updateStatus(id, 'concluido',
+          bearerToken: session.token, nonce: nonce);
     } on ApiException catch (error) {
       if (error.retryable) return CompletionState.pending;
       if (error.statusCode == 401) rethrow;

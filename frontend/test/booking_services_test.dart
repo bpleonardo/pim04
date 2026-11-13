@@ -31,6 +31,7 @@ class BookingApi extends BarbershopApi {
     required String employeeId,
     required DateTime scheduledAt,
     required List<String> services,
+    String? nonce,
   }) async {
     submittedServices = services;
   }

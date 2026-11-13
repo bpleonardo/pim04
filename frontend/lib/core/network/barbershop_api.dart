@@ -68,8 +68,9 @@ class BarbershopApi {
       required String phone,
       required String employeeId,
       required DateTime scheduledAt,
-      required List<String> services}) async {
-    await _client.request('POST', '/api/agendamentos', body: {
+      required List<String> services,
+      String? nonce}) async {
+    await _client.request('POST', '/api/agendamentos', nonce: nonce, body: {
       'nomeCliente': name,
       'telefoneCliente': phone,
       'idFuncionario': employeeId,
@@ -79,9 +80,9 @@ class BarbershopApi {
   }
 
   Future<void> updateStatus(String id, String status,
-      {String? bearerToken}) async {
+      {String? bearerToken, String? nonce}) async {
     await _client.request('PATCH', '/api/agendamentos/$id',
-        body: {'status': status}, bearerToken: bearerToken);
+        body: {'status': status}, bearerToken: bearerToken, nonce: nonce);
   }
 
   Future<Map<String, dynamic>> dashboard() async =>

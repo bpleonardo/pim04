@@ -21,8 +21,14 @@ class AppDatabase {
 
   static Future<Database> _open() async {
     final path = join(await getDatabasesPath(), 'barbearia_cache.db');
-    return openDatabase(path, version: 4, onUpgrade: (db, oldVersion, _) async {
+    return openDatabase(path, version: 5, onUpgrade: (db, oldVersion, _) async {
       if (oldVersion < 2) await _createSyncTables(db);
+      if (oldVersion >= 2 && oldVersion < 5) {
+        await db.execute(
+            "ALTER TABLE pending_completions ADD COLUMN nonce TEXT NOT NULL DEFAULT ''");
+        await db.execute(
+            "UPDATE pending_completions SET nonce = lower(hex(randomblob(16))) WHERE nonce = ''");
+      }
       if (oldVersion < 3) await _createConfigTable(db);
       if (oldVersion >= 2 && oldVersion < 4) {
         await db
@@ -72,7 +78,7 @@ class AppDatabase {
   static Future<void> _createSyncTables(Database db) async {
     await _createAgendaTable(db);
     await db.execute(
-      'CREATE TABLE pending_completions (scope TEXT NOT NULL, appointment_id TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(scope, appointment_id))',
+      'CREATE TABLE pending_completions (scope TEXT NOT NULL, appointment_id TEXT NOT NULL, state TEXT NOT NULL, nonce TEXT NOT NULL, PRIMARY KEY(scope, appointment_id))',
     );
   }
 }

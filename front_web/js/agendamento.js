@@ -708,7 +708,10 @@ function irParaStep(step) {
 }
 
 // Confirmação final - POST para /api/agendamentos
+let bookingAttempt;
+
 async function confirmarAgendamento() {
+  if (dom.confirmar.disabled) return;
   const nome = dom.nome.value.trim();
   const digits = dom.tel.value.replace(/\D/g, '');
   const telefone = digits.length === 11 ? '55' + digits : digits;
@@ -730,20 +733,28 @@ async function confirmarAgendamento() {
     emailCliente: email,
     dataAgendamento: new Date(`${dataStr}T${horaStr}:00-03:00`).toISOString(),
     idFuncionario: funcionarioId,
-    idServicos: estado.servicos.map(s => s.id)
+    idServicos: estado.servicos.map(s => s.id).sort()
   };
 
   dom.confirmar.disabled = true;
   try {
+    const body = JSON.stringify(payload);
+    if (bookingAttempt?.body !== body) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      const nonce = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      bookingAttempt = { body, nonce };
+    }
     const res = await fetch(`${API_BASE}/agendamentos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Nonce: bookingAttempt.nonce,
       },
-      body: JSON.stringify(payload)
+      body
     });
 
     if (!res.ok) {
+      if (res.status < 500 && ![408, 429].includes(res.status)) bookingAttempt = undefined;
       const error = await res.json().catch(() => ({}));
       throw new Error(error?.error?.message || `Erro ao agendar (${res.status})`);
     }
