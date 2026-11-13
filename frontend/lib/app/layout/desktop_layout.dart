@@ -69,8 +69,6 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 title: const Text('Configurações'),
                 onTap: () => open(AppRouter.settingsRoute),
               ),
-            const Align(
-                alignment: Alignment.centerLeft, child: ThemeToggleButton()),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
@@ -138,6 +136,13 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: ThemeToggleButton(),
+                          ),
+                        ),
                         if (currentRoute != AppRouter.home) ...[
                           SizedBox(
                             height: 56,
