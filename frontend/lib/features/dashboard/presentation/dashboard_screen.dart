@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
@@ -149,38 +150,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  for (final entry in realizedByDay.entries)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Wrap(
-                            alignment: WrapAlignment.spaceBetween,
-                            spacing: 12,
-                            children: [
-                              Text(shopDateLabel(entry.key),
-                                  style: theme.textTheme.bodyMedium),
-                              Text(_currency(entry.value),
-                                  style: theme.textTheme.titleSmall),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          LinearProgressIndicator(
-                            value: (entry.value / peak).clamp(0.0, 1.0),
-                            minHeight: 8,
-                            borderRadius: BorderRadius.circular(4),
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHighest,
-                            semanticsLabel: shopDateLabel(entry.key),
-                            semanticsValue: _currency(entry.value),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+              child: SizedBox(
+                height: 240,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _RevenueChart(
+                    realizedByDay,
+                    peak,
+                    theme.colorScheme,
+                    _currency,
+                    Directionality.of(context),
+                  ),
+                ),
               ),
             ),
           ),
@@ -260,4 +241,105 @@ class _DashboardScreenState extends State<DashboardScreen> {
           appBar: AppBar(title: const Text('Dashboard')),
           body: _content(),
         );
+}
+
+class _RevenueChart extends CustomPainter {
+  _RevenueChart(
+      this.revenue, this.peak, this.colors, this.currency, this.direction);
+
+  final Map<DateTime, double> revenue;
+  final double peak;
+  final ColorScheme colors;
+  final String Function(double) currency;
+  final TextDirection direction;
+
+  TextPainter _label(String text) => TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(color: colors.onSurface, fontSize: 12),
+        ),
+        textDirection: direction,
+      )..layout();
+
+  String _date(DateTime date) => '${date.day}/${date.month}';
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final labels = [
+      for (var step = 0; step <= 4; step++) _label(currency(peak * step / 4)),
+    ];
+    final left = labels.fold(
+            0.0, (width, label) => label.width > width ? label.width : width) +
+        12;
+    final right = size.width - 20;
+    final bottom = size.height - 24;
+    const top = 12.0;
+    if (right <= left || bottom <= top) return;
+
+    final grid = Paint()..color = colors.outlineVariant;
+    for (var step = 0; step < labels.length; step++) {
+      final y = bottom - (bottom - top) * step / 4;
+      final label = labels[step];
+      label.paint(canvas, Offset(left - label.width - 8, y - label.height / 2));
+      canvas.drawLine(Offset(left, y), Offset(right, y), grid);
+    }
+
+    final entries = revenue.entries.toList();
+    final line = Path();
+    final dots = <Offset>[];
+    final last = entries.length - 1;
+    final labelInterval =
+        ((last * 48) / (right - left)).ceil().clamp(1, entries.length);
+    for (var index = 0; index < entries.length; index++) {
+      final entry = entries[index];
+      final x =
+          last == 0 ? (left + right) / 2 : left + (right - left) * index / last;
+      final y = bottom - (bottom - top) * (entry.value / peak).clamp(0.0, 1.0);
+      if (index == 0) {
+        line.moveTo(x, y);
+      } else {
+        line.lineTo(x, y);
+      }
+      dots.add(Offset(x, y));
+      if (index == last ||
+          (index % labelInterval == 0 && last - index >= labelInterval)) {
+        final label = _label(_date(entry.key));
+        label.paint(canvas, Offset(x - label.width / 2, bottom + 7));
+      }
+    }
+
+    final stroke = Paint()
+      ..color = colors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(line, stroke);
+    final marker = Paint()..color = colors.primary;
+    for (final point in dots) {
+      canvas.drawCircle(point, entries.length > 15 ? 2 : 3.5, marker);
+    }
+  }
+
+  @override
+  SemanticsBuilderCallback get semanticsBuilder => (size) => [
+        CustomPainterSemantics(
+          rect: Offset.zero & size,
+          properties: SemanticsProperties(
+            label: revenue.entries
+                .map((entry) => '${_date(entry.key)}: ${currency(entry.value)}')
+                .join(', '),
+            textDirection: direction,
+          ),
+        ),
+      ];
+
+  @override
+  bool shouldRebuildSemantics(covariant _RevenueChart oldDelegate) =>
+      shouldRepaint(oldDelegate);
+
+  @override
+  bool shouldRepaint(covariant _RevenueChart oldDelegate) =>
+      oldDelegate.revenue != revenue ||
+      oldDelegate.colors != colors ||
+      oldDelegate.direction != direction;
 }
