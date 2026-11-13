@@ -26,28 +26,44 @@ function iconeServico(nome) {
   return '✂';
 }
 
+let serviceRequest = 0;
+
 async function carregarServicosDaApi() {
+  const request = ++serviceRequest;
+  const selectedIds = new Set(estado.servicos.map(service => service.id));
+  SERVICOS = [];
+  estado.servicos = [];
+  atualizarTotal();
+  setVisibilidade(dom.servicoErr, false);
+  setTexto(dom.servicosGrid, 'Carregando serviços…');
+
   try {
-    const response = await fetch(`${API_BASE}/servicos`);
+    const response = await fetch(`${API_BASE}/servicos`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('Falha ao carregar serviços.');
+    const { data } = await response.json();
+    if (request !== serviceRequest) return;
 
-    if (!response.ok) {
-      throw new Error(`Falha ao carregar serviços (${response.status})`);
-    }
-
-    const payload = await response.json();
-    const data = Array.isArray(payload?.data) ? payload.data : [];
-
-    {
-      SERVICOS = data.filter(servico => servico.ativo !== false).map((servico) => ({
-        id: servico.id,
-        nome: servico.nome,
-        preco: Number(servico.preco) || 0,
-        icone: iconeServico(servico.nome),
+    SERVICOS = data.filter(service => service.id && service.ativo !== false)
+      .map(service => ({
+        id: service.id,
+        nome: service.nome,
+        preco: Number(service.preco),
+        icone: iconeServico(service.nome),
       }));
-      renderizarServicos();
+    estado.servicos = SERVICOS.filter(service => selectedIds.has(service.id));
+    atualizarTotal();
+    if (!SERVICOS.length) {
+      setTexto(dom.servicosGrid, 'Nenhum serviço disponível no momento.');
+      return;
     }
-  } catch (error) {
-    console.warn('Não foi possível carregar serviços da API. ', error);
+    renderizarServicos();
+    sincronizarServicos();
+    if (!document.getElementById('panel-3').classList.contains('active')) {
+      desabilitarTab(document.getElementById('panel-3'));
+    }
+  } catch {
+    if (request !== serviceRequest) return;
+    setTexto(dom.servicosGrid, 'Não foi possível carregar os serviços. Volte e avance para tentar novamente.');
   }
 }
 
@@ -230,7 +246,7 @@ function renderizarServicos() {
         >
           <div class="servico-icon fs-3 mb-2">${servico.icone}</div>
           <div class="servico-nome fw-semibold">${escapeHtml(servico.nome)}</div>
-          <div class="servico-preco">R$ ${servico.preco},00</div>
+          <div class="servico-preco">${formatarMoeda(servico.preco)}</div>
         </button>
       </div>
     `
@@ -432,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarHorarios();
   renderizarServicos();
   renderizarResumo();
-  void carregarServicosDaApi();
   void carregarFuncionariosDaApi();
 
   const hoje = new Date();
@@ -669,6 +684,7 @@ function irParaStep(step) {
   dom.panels.forEach(p => p.classList.remove('active'));
   const painelAtivo = document.getElementById(`panel-${step}`);
   painelAtivo.classList.add('active');
+  if (step === 3) void carregarServicosDaApi();
 
   // Atualiza TAB: só o painel ativo
   dom.panels.forEach(panel => {
