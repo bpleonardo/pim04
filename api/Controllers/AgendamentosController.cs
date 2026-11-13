@@ -13,9 +13,8 @@ namespace api.Controllers
     {
         private readonly AgendamentosService _service = service;
 
-        [HttpGet("{id:guid?}")]
+        [HttpGet]
         public async Task<ActionResult> Get(
-            Guid? id,
             [FromQuery] DateOnly? date,
             [FromQuery] bool mine = false
         )
@@ -27,9 +26,6 @@ namespace api.Controllers
                     return Unauthorized();
                 employeeId = ownerId;
             }
-
-            if (id is Guid appointmentId)
-                return Ok(ApiResponse.Ok(await _service.GetOne(appointmentId, employeeId)));
 
             return Ok(ApiResponse.Ok(await _service.GetAll(date, employeeId)));
         }
@@ -48,7 +44,7 @@ namespace api.Controllers
         )
         {
             var result = await _service.CreateOne(dto);
-            return CreatedAtAction(nameof(Get), new { id = result.Id }, ApiResponse.Ok(result));
+            return StatusCode(StatusCodes.Status201Created, ApiResponse.Ok(result));
         }
 
         // PATCH: /api/agendamentos/{id}

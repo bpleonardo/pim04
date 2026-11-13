@@ -84,7 +84,4 @@ class BarbershopApi {
     await _client.request('PATCH', '/api/agendamentos/$id',
         body: {'status': status}, bearerToken: bearerToken, nonce: nonce);
   }
-
-  Future<Map<String, dynamic>> dashboard() async =>
-      Map<String, dynamic>.from(await _client.request('GET', '/api/Dashboard'));
 }

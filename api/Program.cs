@@ -40,7 +40,6 @@ namespace api
             builder.Services.AddScoped<Services.ServicosService>();
 
             builder.Services.AddScoped<Repositories.ClientesRepository>();
-            builder.Services.AddScoped<Services.ClientesService>();
 
             builder.Services.AddScoped<Repositories.HorariosRepository>();
             builder.Services.AddScoped<Services.HorariosService>();
@@ -54,8 +53,6 @@ namespace api
             builder.Services.AddScoped<Repositories.FuncionariosRepository>();
             builder.Services.AddScoped<Services.FuncionariosService>();
 
-            builder.Services.AddScoped<Services.DashboardService>();
-            builder.Services.AddScoped<Services.FinanceiroService>();
 
             // O Flutter Web usa uma porta local variável durante o desenvolvimento.
             if (builder.Environment.IsDevelopment())

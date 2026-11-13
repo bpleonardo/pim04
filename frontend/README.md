@@ -28,7 +28,6 @@ docker compose -f docker-compose.yml -f resources/docker/docker-compose.dev.yml 
 ```
 
 - `GET /api/agendamentos?date=AAAA-MM-DD&mine=true` lista os agendamentos do usuário autenticado.
-- `GET /api/agendamentos/{id}` consulta um agendamento. A flag `mine` também pode ser usada nesse caminho.
 - `mine=false` ou a ausência da flag mantém a listagem geral.
 - `PATCH /api/agendamentos/{id}` atualiza o status somente se o usuário for responsável pelo agendamento. A repetição de uma conclusão já aceita retorna sucesso, preservando a data registrada.
 

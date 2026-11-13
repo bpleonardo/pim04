@@ -20,16 +20,6 @@ namespace api.Controllers
             return Ok(ApiResponse.Ok(servicos));
         }
 
-        // GET: /api/servicos/{id}
-        [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<ServicoDTO>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<ServicoDTO>>> Get(Guid id)
-        {
-            var servico = await _service.GetOne(id);
-            return Ok(ApiResponse.Ok(servico));
-        }
-
         // POST: /api/servicos
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
