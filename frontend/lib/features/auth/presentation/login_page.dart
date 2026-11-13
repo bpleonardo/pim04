@@ -55,20 +55,20 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Positioned(
               top: 4,
-              right: AppPlatform.native ? 52 : 8,
-              child: const ThemeToggleButton(),
-            ),
-            if (AppPlatform.native)
-              Positioned(
-                top: 4,
-                right: 8,
-                child: IconButton(
-                  tooltip: 'Configurar API',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => showApiConfigDialog(context),
-                  icon: const Icon(Icons.settings_outlined),
-                ),
+              right: 8,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ThemeToggleButton(),
+                  if (AppPlatform.native)
+                    IconButton(
+                      tooltip: 'Configurar API',
+                      onPressed: () => showApiConfigDialog(context),
+                      icon: const Icon(Icons.settings_outlined),
+                    ),
+                ],
               ),
+            ),
             Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(28),
