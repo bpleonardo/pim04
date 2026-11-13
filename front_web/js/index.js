@@ -34,33 +34,46 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTabMenu();
 });
 
-// Dados dos serviços exibidos na home — alterar aqui para atualizar a vitrine.
-const INDEX_SERVICOS = [
-  { titulo: 'Cabelo', descricao: 'Cortes modernos e clássicos executados com precisão.', preco: 35, icone: '✂' },
-  { titulo: 'Barba', descricao: 'Modelagem e acabamento com navalha para um visual impecável.', preco: 25, icone: '🪒' },
-  { titulo: 'Sobrancelha', descricao: 'Design e acabamento profissional para realçar o seu olhar.', preco: 15, icone: '👁' },
-];
+const servicePrice = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
 
-// Renderiza a seção de serviços na home mantendo classes Bootstrap para responsividade.
-function renderizarServicosIndex() {
+async function renderizarServicosIndex() {
   const container = document.getElementById('servicos-grid');
   if (!container) return;
 
-  container.innerHTML = INDEX_SERVICOS.map(s => `
-    <article class="col">
-      <div class="card h-100 bg-transparent border-secondary">
-        <div class="card-body p-4">
-          <div class="card-icon fs-2 mb-3">${s.icone}</div>
-          <h3 class="card-title h5">${s.titulo}</h3>
-          <p class="card-desc mb-3">${s.descricao}</p>
-          <p class="card-price mb-0">A partir de R$ ${s.preco},00</p>
-        </div>
-      </div>
-    </article>
-  `).join('');
+  try {
+    const response = await fetch('/api/servicos', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Falha ao carregar serviços.');
+    const { data } = await response.json();
+    const services = data.filter(service => service.ativo !== false);
+
+    if (!services.length) {
+      container.textContent = 'Nenhum serviço disponível no momento.';
+      return;
+    }
+
+    for (const service of services) {
+      const card = document.createElement('article');
+      card.className = 'col';
+      card.innerHTML = `
+        <div class="card h-100 bg-transparent border-secondary">
+          <div class="card-body p-4">
+            <div class="card-icon fs-2 mb-3" aria-hidden="true">✂</div>
+            <h3 class="card-title h5"></h3>
+            <p class="card-desc mb-3"></p>
+            <p class="card-price mb-0"></p>
+          </div>
+        </div>`;
+      card.querySelector('.card-title').textContent = service.nome;
+      card.querySelector('.card-desc').textContent = service.descricao ?? '';
+      card.querySelector('.card-price').textContent = servicePrice.format(service.preco);
+      container.append(card);
+    }
+  } catch {
+    container.textContent = 'Não foi possível carregar os serviços. Tente novamente em instantes.';
+  }
 }
 
-// Chama a renderização assim que o DOM principal estiver pronto.
-document.addEventListener('DOMContentLoaded', () => {
-  renderizarServicosIndex();
-});
+document.addEventListener('DOMContentLoaded', renderizarServicosIndex);
