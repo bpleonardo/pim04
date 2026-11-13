@@ -42,7 +42,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return results;
   }
 
-  void _refresh() => setState(() => _dashboard = _load());
+  void _refresh() {
+    final dashboard = _load();
+    setState(() {
+      _dashboard = dashboard;
+    });
+  }
 
   String _currency(double value) {
     final cents = (value.abs() * 100).round();
