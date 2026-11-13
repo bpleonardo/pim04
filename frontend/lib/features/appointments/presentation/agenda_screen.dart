@@ -143,8 +143,18 @@ class _AgendaScreenState extends State<AgendaScreen> {
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
-              onTap: () {
-                ApiClient.signOut();
+              onTap: () async {
+                try {
+                  await ApiClient.logout();
+                } catch (error) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Não foi possível sair. $error')),
+                    );
+                  }
+                  return;
+                }
+                if (!mounted) return;
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   AppRouter.login,

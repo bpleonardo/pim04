@@ -20,9 +20,16 @@ namespace api.DTOs
         public string Login { get; init; }
     }
 
+    public record RefreshRequest(
+        [property: Required, System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
+        string RefreshToken);
+
     public readonly struct LoginResponse
     {
+        [System.Text.Json.Serialization.JsonPropertyName("access_token")]
         public string Token { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
+        public string RefreshToken { get; init; }
         public AuthUser User { get; init; }
     }
 }

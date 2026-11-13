@@ -241,8 +241,19 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                 ListTile(
                   leading: const Icon(Icons.logout),
                   title: const Text('Sair'),
-                  onTap: () {
-                    ApiClient.signOut();
+                  onTap: () async {
+                    try {
+                      await ApiClient.logout();
+                    } catch (error) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Não foi possível sair. $error')),
+                        );
+                      }
+                      return;
+                    }
+                    if (!context.mounted) return;
                     Navigator.pushNamedAndRemoveUntil(
                         context, AppRouter.login, (_) => false);
                   },

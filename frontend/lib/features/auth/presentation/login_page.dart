@@ -1,7 +1,6 @@
 import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
-import 'package:barbearia_frontend/features/auth/models/user.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/core/config/api_config_dialog.dart';
@@ -31,9 +30,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final result =
           await BarbershopApi().login(login.text.trim(), password.text);
-      final user = User.fromJson(Map<String, dynamic>.from(result['user']));
-      ApiClient.token = result['token'] as String;
-      ApiClient.user = user;
+      ApiClient.startSession(result);
       if (mounted) Navigator.pushReplacementNamed(context, AppRouter.home);
     } catch (e) {
       if (mounted) {

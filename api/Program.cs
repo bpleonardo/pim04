@@ -71,6 +71,7 @@ namespace api
                                     && (uri.Scheme == "http" || uri.Scheme == "https")
                                 )
                                 .AllowAnyHeader()
+                                .WithExposedHeaders("Access-Token-Expired")
                                 .AllowAnyMethod()
                     )
                 );
@@ -86,6 +87,15 @@ namespace api
                 .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnChallenge = context =>
+                        {
+                            if (context.AuthenticateFailure is SecurityTokenExpiredException)
+                                context.Response.Headers["Access-Token-Expired"] = "true";
+                            return Task.CompletedTask;
+                        },
+                    };
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
@@ -144,14 +154,6 @@ namespace api
                 await db.Database.MigrateAsync();
             }
 
-            app.UseWhen(
-                context => context.Request.Headers.ContainsKey("Nonce"),
-                appBuilder =>
-                {
-                    appBuilder.UseMiddleware<Utilities.NonceMiddleware>();
-                }
-            );
-
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -167,6 +169,16 @@ namespace api
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.UseWhen(
+                context => context.Request.Headers.ContainsKey("Nonce")
+                    && !context.Request.Path.StartsWithSegments("/api/login", StringComparison.OrdinalIgnoreCase),
+                appBuilder =>
+                {
+                    appBuilder.UseMiddleware<Utilities.NonceMiddleware>();
+                }
+            );
+
 
             app.MapGet("/api/ping", () => Results.Ok(new { status = "ok" }));
             app.MapControllers();

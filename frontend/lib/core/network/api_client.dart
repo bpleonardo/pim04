@@ -23,7 +23,49 @@ class ApiClient {
   static String get baseUrl => ApiConfig.baseUrl;
   static String? token;
   static User? user;
+  static String? _refreshToken;
+  static Future<void>? _refreshing;
+  static int _session = 0;
+  static bool _signingOut = false;
+
+  static void startSession(Map<String, dynamic> response) {
+    _session++;
+    _refreshing = null;
+    token = response['access_token'] as String;
+    _refreshToken = response['refresh_token'] as String;
+    user = User.fromJson(Map<String, dynamic>.from(response['user'] as Map));
+  }
+
+  static Future<void> logout() async {
+    if (_signingOut) return;
+    _signingOut = true;
+    final session = _session;
+    try {
+      try {
+        await _refreshing;
+      } on ApiException {
+        // Tenta revogar a credencial disponível mesmo após falha de renovação.
+      }
+      if (session != _session) return;
+      final refresh = _refreshToken;
+      if (refresh != null) {
+        try {
+          await ApiClient().request('POST', '/api/login/logout',
+              body: {'refresh_token': refresh});
+        } on ApiException catch (error) {
+          if (error.statusCode != 401) rethrow;
+        }
+      }
+      if (session == _session) signOut();
+    } finally {
+      _signingOut = false;
+    }
+  }
+
   static void signOut() {
+    _session++;
+    _refreshToken = null;
+    _refreshing = null;
     token = null;
     user = null;
   }
@@ -34,14 +76,42 @@ class ApiClient {
       .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
       .join();
 
+  Future<void> _renew(int session) async {
+    final refresh = _refreshToken;
+    if (refresh == null) {
+      throw const ApiException('Sessão expirada. Entre novamente.', 401);
+    }
+    try {
+      final data = await request('POST', '/api/login/refresh',
+          body: {'refresh_token': refresh}) as Map;
+      if (session != _session) return;
+      token = data['access_token'] as String;
+      _refreshToken = data['refresh_token'] as String;
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 && session == _session) signOut();
+      rethrow;
+    }
+  }
+
   final http.Client _client = http.Client();
   Future<dynamic> request(String method, String path,
-      {Object? body, String? bearerToken, String? nonce}) async {
+          {Object? body, String? bearerToken, String? nonce}) =>
+      _request(method, path,
+          body: body, bearerToken: bearerToken, nonce: nonce);
+
+  Future<dynamic> _request(String method, String path,
+      {Object? body,
+      String? bearerToken,
+      String? nonce,
+      bool retry = true}) async {
     final uri = Uri.parse('$baseUrl$path');
-    final authorization = bearerToken ?? token;
+    final session = _session;
+    final authRoute = path.toLowerCase().startsWith('/api/login');
+    final authorization = authRoute ? null : bearerToken ?? token;
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      if (const {'POST', 'PUT', 'PATCH', 'DELETE'}.contains(method))
+      if (!authRoute &&
+          const {'POST', 'PUT', 'PATCH', 'DELETE'}.contains(method))
         'Nonce': nonce ?? newNonce(),
       if (authorization != null) 'Authorization': 'Bearer $authorization'
     };
@@ -75,6 +145,29 @@ class ApiClient {
       }
     } catch (e) {
       throw ApiException('Falha de conexão: $e');
+    }
+    if (retry &&
+        authorization != null &&
+        response.statusCode == 401 &&
+        response.headers['access-token-expired'] == 'true' &&
+        session == _session &&
+        !_signingOut) {
+      if (token == authorization) {
+        final pending = _refreshing ??= _renew(session);
+        try {
+          await pending;
+        } finally {
+          if (identical(_refreshing, pending)) _refreshing = null;
+        }
+      }
+      if (session != _session || token == null || _signingOut) {
+        throw const ApiException('Sessão expirada. Entre novamente.', 401);
+      }
+      return _request(method, path,
+          body: body,
+          bearerToken: token,
+          nonce: headers['Nonce'],
+          retry: false);
     }
     Object? decoded;
     try {

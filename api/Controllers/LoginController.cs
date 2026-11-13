@@ -7,6 +7,7 @@ namespace api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class LoginController(AuthService authService) : ControllerBase
     {
         private readonly AuthService _authService = authService;
@@ -19,6 +20,17 @@ namespace api.Controllers
         {
             var loginResponse = await _authService.AuthenticateAsync(request);
             return Ok(ApiResponse.Ok(loginResponse));
+        }
+
+        [HttpPost("refresh")]
+        public async Task<ActionResult<ApiResponse<LoginResponse>>> Refresh(RefreshRequest request) =>
+            Ok(ApiResponse.Ok(await _authService.RefreshAsync(request.RefreshToken)));
+
+        [HttpPost("logout")]
+        public async Task<ActionResult> Logout(RefreshRequest request)
+        {
+            await _authService.LogoutAsync(request.RefreshToken);
+            return NoContent();
         }
     }
 }
