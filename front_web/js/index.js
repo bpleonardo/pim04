@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   navCollapse.addEventListener('click', event => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    const section = document.getElementById('servicos');
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    const section = document.getElementById(link.hash.slice(1));
     if (!section) return;
 
     event.preventDefault();
