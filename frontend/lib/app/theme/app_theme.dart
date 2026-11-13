@@ -4,13 +4,17 @@ class AppTheme {
   static ThemeData get light => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.black, brightness: Brightness.light)
+                seedColor: Colors.black,
+                brightness: Brightness.light,
+                dynamicSchemeVariant: DynamicSchemeVariant.monochrome)
             .copyWith(
           primary: Colors.black,
           secondary: Colors.black,
           secondaryContainer: const Color(0xFFE9EDF0),
           onSecondaryContainer: Colors.black,
           outline: const Color(0xFF303030),
+          errorContainer: const Color(0xFFF1F1F1),
+          onErrorContainer: const Color(0xFF780E0E),
         ),
         scaffoldBackgroundColor: Colors.white,
         chipTheme: const ChipThemeData(
