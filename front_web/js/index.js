@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const navCollapse = document.getElementById('navPrincipal');
   if (!navCollapse) return;
 
-  navCollapse.querySelector('a[href="#servicos"]')?.addEventListener('click', event => {
+  navCollapse.addEventListener('click', event => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const section = document.getElementById('servicos');
     if (!section) return;
