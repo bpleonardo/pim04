@@ -43,7 +43,7 @@ class AppRouter {
       agenda =>
         AppPlatform.mobile ? const CortesDiaScreen() : const AgendaScreen(),
       catalog => AppPlatform.mobile
-          ? const CortesDiaScreen()
+          ? const CatalogoScreen()
           : DesktopLayout(
               initialRoute: catalog,
               initialContent: const CatalogoScreen(),

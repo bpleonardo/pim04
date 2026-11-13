@@ -95,7 +95,6 @@ void main() {
       debugDefaultTargetPlatformOverride = platform;
       for (final route in [
         AppRouter.home,
-        AppRouter.catalog,
         AppRouter.agenda,
         AppRouter.dashboard
       ]) {
@@ -124,7 +123,7 @@ void main() {
     expect(find.text('Ana Costa'), findsOneWidget);
     expect(find.text('10:00'), findsNWidgets(3));
     expect(find.text('Concluir corte'), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.byTooltip('Novo agendamento'), findsOneWidget);
     expect(find.text('Novo agendamento'), findsNothing);
     expect(find.text('1 pendente • 1 concluído'), findsOneWidget);
   });

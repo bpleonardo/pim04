@@ -221,6 +221,14 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                     refresh();
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.content_cut),
+                  title: const Text('Serviços'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, AppRouter.catalog);
+                  },
+                ),
                 if (AppPlatform.native)
                   ListTile(
                     leading: const Icon(Icons.settings_outlined),

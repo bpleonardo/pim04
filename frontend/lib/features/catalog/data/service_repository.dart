@@ -7,12 +7,27 @@ import 'package:sqflite/sqflite.dart';
 
 class ServiceRepository {
   final BarbershopApi api = BarbershopApi();
+  Future<void> save(Service service, {required bool creating}) =>
+      api.saveService(service, creating: creating);
+
+  Future<void> delete(String id) async {
+    await api.deleteService(id);
+    if (AppDatabase.available) {
+      await (await AppDatabase.instance).delete(
+        'servicos_cache',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
   Future<List<Service>> list() async {
     try {
       final records = await api.services();
       if (AppDatabase.available) {
         final db = await AppDatabase.instance;
         final batch = db.batch();
+        batch.delete('servicos_cache');
         for (final s in records) {
           batch.insert(
               'servicos_cache',

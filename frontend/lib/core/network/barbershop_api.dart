@@ -12,6 +12,22 @@ class BarbershopApi {
       (await _client.request('GET', '/api/Servicos') as List)
           .map((x) => Service.fromJson(Map<String, dynamic>.from(x)))
           .toList();
+  Future<void> saveService(Service service, {required bool creating}) async {
+    await _client.request(
+      creating ? 'POST' : 'PUT',
+      creating ? '/api/servicos' : '/api/servicos/${service.id}',
+      body: {
+        'nome': service.name,
+        'descricao': service.description,
+        'preco': service.price
+      },
+    );
+  }
+
+  Future<void> deleteService(String id) async {
+    await _client.request('DELETE', '/api/servicos/$id');
+  }
+
   Future<List<Employee>> employees() async =>
       (await _client.request('GET', '/api/Funcionarios') as List)
           .map((x) => Employee.fromJson(Map<String, dynamic>.from(x)))

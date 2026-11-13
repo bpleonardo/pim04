@@ -44,6 +44,16 @@ class ApiClient {
               .post(uri, headers: headers, body: jsonEncode(body))
               .timeout(const Duration(seconds: 15));
           break;
+        case 'PUT':
+          response = await _client
+              .put(uri, headers: headers, body: jsonEncode(body))
+              .timeout(const Duration(seconds: 15));
+          break;
+        case 'DELETE':
+          response = await _client
+              .delete(uri, headers: headers)
+              .timeout(const Duration(seconds: 15));
+          break;
         case 'PATCH':
           response = await _client
               .patch(uri, headers: headers, body: jsonEncode(body))
