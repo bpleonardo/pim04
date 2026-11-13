@@ -13,7 +13,7 @@
   --gold-light: #e8c97a;
   --gold-dim: rgba(229, 189, 101, 0.12);
   --text: #fff8eb;
-  --muted: #c7beb1;
+  --muted: #e4dbcf;
   --danger: #e05252;
   --success: #4caf7d;
   --font-serif: Georgia, 'Times New Roman', serif;
@@ -25,7 +25,7 @@
   --bs-warning: var(--gold);
   --bs-warning-rgb: 229, 189, 101;
   --bs-secondary: var(--muted);
-  --bs-secondary-rgb: 199, 190, 177;
+  --bs-secondary-rgb: 228, 219, 207;
 }
 
 /* Reset básico para evitar diferenças entre navegadores */
@@ -42,7 +42,7 @@ body {
   font-family: var(--font-sans);
   background: var(--black);
   color: var(--text);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -235,7 +235,7 @@ header.fixed-top {
   --bs-btn-active-border-color: var(--gold-light);
   --bs-btn-focus-shadow-rgb: 229, 189, 101;
   min-height: 46px;
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: 0.08em;
 }
@@ -250,14 +250,13 @@ header.fixed-top {
   --bs-btn-active-bg: var(--gold-dim);
   --bs-btn-active-border-color: var(--gold);
   min-height: 44px;
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   letter-spacing: 0.08em;
 }
 
 .form-label {
-  font-size: 0.6875rem;
-  letter-spacing: 0.1rem;
-  text-transform: uppercase;
+  font-size: 0.9375rem;
+  font-weight: 600;
   color: var(--muted);
 }
 

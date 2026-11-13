@@ -2,8 +2,8 @@
 
 /* Rótulo pequeno usado em seções de destaque */
 .tagline {
-  font-size: 0.7rem;
-  letter-spacing: 0.25rem;
+  font-size: 0.875rem;
+  letter-spacing: 0.12em;
   color: var(--gold);
 }
 
@@ -84,7 +84,7 @@
 
 /* Rodapé da home */
 .footer-inner {
-  font-size: 0.8rem;
+  font-size: 0.9375rem;
 }
 
 /* Link do rodapé com destaque no hover */
