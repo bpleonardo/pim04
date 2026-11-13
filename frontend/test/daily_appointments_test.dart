@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -254,6 +255,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(
         repo.requestedDates.last, DateTime(day.year, day.month, day.day + 1));
+    expect(find.text(shopDateLabel(repo.requestedDates.last)), findsOneWidget);
+    await tester.tap(find.byTooltip('Dia anterior'));
+    await tester.pumpAndSettle();
+    expect(find.text(shopDateLabel(day)), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

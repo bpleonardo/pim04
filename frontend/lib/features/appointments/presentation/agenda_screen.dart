@@ -20,14 +20,13 @@ class AgendaScreen extends StatefulWidget {
 
 class _AgendaScreenState extends State<AgendaScreen> {
   late final AppointmentRepository repo;
-  late Future<List<Appointment>> future;
+  late Future<List<Appointment>> future = repo.list(date: selectedDate);
   DateTime selectedDate = shopTime(DateTime.now());
 
   @override
   void initState() {
     super.initState();
     repo = widget.repository ?? AppointmentRepository();
-    future = repo.list(date: selectedDate);
   }
 
   Future<void> refresh() async {
@@ -265,7 +264,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
         if (constraints.maxWidth < 760) return buildContent(context);
         return DesktopLayout(
           initialRoute: AppRouter.home,
-          initialContent: buildContent(context),
+          initialContent: AgendaScreen(repository: repo, embedded: true),
         );
       },
     );
