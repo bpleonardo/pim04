@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 import 'package:barbearia_frontend/app/routes/app_router.dart';
@@ -68,6 +69,8 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 title: const Text('Configurações'),
                 onTap: () => open(AppRouter.settingsRoute),
               ),
+            const Align(
+                alignment: Alignment.centerLeft, child: ThemeToggleButton()),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
@@ -86,7 +89,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
 
   Widget _navigationItem(String route, String label) => ListTile(
         selected: currentRoute == route,
-        selectedTileColor: const Color(0xFFE9E9E9),
+        selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         title: Text(label),
         onTap: () => open(route),
@@ -106,7 +109,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
       open: open,
       route: currentRoute,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -115,7 +118,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 SizedBox(
                   width: 216,
                   child: Material(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(color: Color(0xFF303030)),
                       borderRadius: BorderRadius.circular(16),
@@ -127,7 +130,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Material(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(color: Color(0xFF303030)),
                       borderRadius: BorderRadius.circular(16),

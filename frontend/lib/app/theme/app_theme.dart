@@ -1,6 +1,30 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static final mode = ValueNotifier(ThemeMode.light);
+
+  static ThemeData get dark {
+    final colors = ColorScheme.fromSeed(
+      seedColor: Colors.black,
+      brightness: Brightness.dark,
+      dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
+    );
+    return ThemeData(
+      colorScheme: colors,
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colors.outlineVariant),
+        ),
+      ),
+    );
+  }
+
   static ThemeData get light => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -51,4 +75,19 @@ class AppTheme {
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black, foregroundColor: Colors.white)),
       );
+}
+
+class ThemeToggleButton extends StatelessWidget {
+  const ThemeToggleButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return IconButton(
+      tooltip: dark ? 'Ativar modo claro' : 'Ativar modo escuro',
+      onPressed: () =>
+          AppTheme.mode.value = dark ? ThemeMode.light : ThemeMode.dark,
+      icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+    );
+  }
 }

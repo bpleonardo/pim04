@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
 import 'package:barbearia_frontend/core/network/api_client.dart';
@@ -89,7 +90,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   Widget dateBar() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           border: Border.all(color: const Color(0xFF303030)),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -217,19 +218,16 @@ class _AgendaScreenState extends State<AgendaScreen> {
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 760;
           return Scaffold(
-            backgroundColor: const Color(0xFFF7F7F7),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
             appBar: wide || widget.embedded
                 ? null
                 : AppBar(
                     title: const Text('Agendamentos'),
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    actions: const [ThemeToggleButton()],
                   ),
             drawer: wide ? null : Drawer(child: mobileNavigation()),
             floatingActionButton: FloatingActionButton(
               tooltip: 'Novo agendamento',
-              backgroundColor: const Color(0xFFE9EDF0),
-              foregroundColor: Colors.black,
               shape: const CircleBorder(
                 side: BorderSide(color: Color(0xFF303030)),
               ),

@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
@@ -180,12 +181,11 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
         appBar: AppBar(
           title: const Text('Agendamentos'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
           actions: [
+            const ThemeToggleButton(),
             IconButton(
               onPressed: _loading || completingId != null ? null : _pickDate,
               tooltip: 'Selecionar data',

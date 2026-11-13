@@ -7,15 +7,20 @@ class BarbershopApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Barbearia',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      initialRoute: AppRouter.login,
-      onGenerateRoute: AppRouter.onGenerateRoute,
-      onGenerateInitialRoutes: (name) => [
-        AppRouter.onGenerateRoute(RouteSettings(name: name)),
-      ],
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppTheme.mode,
+      builder: (context, mode, _) => MaterialApp(
+        title: 'Barbearia',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: mode,
+        initialRoute: AppRouter.login,
+        onGenerateRoute: AppRouter.onGenerateRoute,
+        onGenerateInitialRoutes: (name) => [
+          AppRouter.onGenerateRoute(RouteSettings(name: name)),
+        ],
+      ),
     );
   }
 }

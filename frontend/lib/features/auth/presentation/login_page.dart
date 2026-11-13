@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
 import 'package:barbearia_frontend/features/auth/models/user.dart';
@@ -48,10 +49,15 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(borderRadius: BorderRadius.circular(14));
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Stack(
           children: [
+            Positioned(
+              top: 4,
+              right: AppPlatform.native ? 52 : 8,
+              child: const ThemeToggleButton(),
+            ),
             if (AppPlatform.native)
               Positioned(
                 top: 4,
