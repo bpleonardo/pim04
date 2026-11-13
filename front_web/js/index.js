@@ -3,6 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const navCollapse = document.getElementById('navPrincipal');
   if (!navCollapse) return;
 
+  navCollapse.querySelector('a[href="#servicos"]')?.addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const section = document.getElementById('servicos');
+    if (!section) return;
+
+    event.preventDefault();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' });
+  });
+
   // Links que precisam ficar navegáveis apenas quando o menu estiver visível.
   const navLinks = Array.from(navCollapse.querySelectorAll('a'));
   const media = window.matchMedia('(min-width: 768px)');
