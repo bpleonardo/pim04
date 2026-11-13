@@ -24,6 +24,11 @@ class BarbershopApi {
     );
   }
 
+  Future<void> setServiceEnabled(String id, bool enabled) async {
+    await _client
+        .request('PATCH', '/api/servicos/$id', body: {'ativo': enabled});
+  }
+
   Future<void> deleteService(String id) async {
     await _client.request('DELETE', '/api/servicos/$id');
   }

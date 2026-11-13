@@ -10,6 +10,18 @@ class ServiceRepository {
   Future<void> save(Service service, {required bool creating}) =>
       api.saveService(service, creating: creating);
 
+  Future<void> setEnabled(Service service, bool enabled) async {
+    await api.setServiceEnabled(service.id, enabled);
+    if (AppDatabase.available) {
+      await (await AppDatabase.instance).update(
+        'servicos_cache',
+        {'json': jsonEncode(service.toJson()..['ativo'] = enabled)},
+        where: 'id = ?',
+        whereArgs: [service.id],
+      );
+    }
+  }
+
   Future<void> delete(String id) async {
     await api.deleteService(id);
     if (AppDatabase.available) {

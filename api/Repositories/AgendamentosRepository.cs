@@ -46,7 +46,8 @@ namespace api.Repositories
                         sr.Servico.Id,
                         sr.Servico.Nome,
                         sr.Servico.Descricao,
-                        sr.Servico.Preco
+                        sr.Servico.Preco,
+                        sr.Servico.Ativo
                     ))
                     .ToArray(),
                 new MinClienteDTO(a.Cliente.Nome, a.Cliente.Telefone ?? string.Empty),
@@ -82,14 +83,22 @@ namespace api.Repositories
             Guid[] serviceIds
         )
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            // Mantém o estado dos serviços estável até gravar o agendamento.
             var services = await _context.Servicos
-                .Where(s => serviceIds.Contains(s.Id))
+                .FromSql($"SELECT * FROM \"Servicos\" WHERE \"Id\" = ANY ({serviceIds}) ORDER BY \"Id\" FOR SHARE")
+                .AsNoTracking()
                 .ToListAsync();
 
             // Valida se todos os serviços existem no banco
             if (services.Count != serviceIds.Distinct().Count())
             {
                 throw new ResourceNotFoundException("Um ou mais serviços informados não foram encontrados.");
+            }
+
+            if (services.Any(service => !service.Ativo))
+            {
+                throw new ConflictException("Um dos serviços selecionados está desabilitado.");
             }
 
             var appointmentId = Guid.NewGuid();
@@ -118,6 +127,7 @@ namespace api.Repositories
 
             await _context.Agendamentos.AddAsync(appointment);
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             return appointmentId;
         }
@@ -162,7 +172,8 @@ namespace api.Repositories
                     sr.Servico.Id,
                     sr.Servico.Nome,
                     sr.Servico.Descricao,
-                    sr.Servico.Preco
+                    sr.Servico.Preco,
+                        sr.Servico.Ativo
                 ))
                 .ToArray();
 

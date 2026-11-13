@@ -1,5 +1,4 @@
 using api.DTOs;
-using api.Models;
 using api.Services;
 using api.Utilities;
 using Microsoft.AspNetCore.Mvc;
@@ -14,8 +13,8 @@ namespace api.Controllers
 
         // GET: /api/servicos
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<Servico[]>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<Servico[]>>> Get()
+        [ProducesResponseType(typeof(ApiResponse<ServicoDTO[]>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse<ServicoDTO[]>>> Get()
         {
             var servicos = await _service.GetAll();
             return Ok(ApiResponse.Ok(servicos));
@@ -23,9 +22,9 @@ namespace api.Controllers
 
         // GET: /api/servicos/{id}
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<Servico>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ServicoDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<Servico>>> Get(Guid id)
+        public async Task<ActionResult<ApiResponse<ServicoDTO>>> Get(Guid id)
         {
             var servico = await _service.GetOne(id);
             return Ok(ApiResponse.Ok(servico));

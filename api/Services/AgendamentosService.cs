@@ -91,6 +91,9 @@ namespace api.Services
                         $"Serviço com ID '{serviceId}' não encontrado."
                     );
 
+                if (!service.Ativo)
+                    throw new ConflictException($"O serviço '{service.Nome}' está desabilitado.");
+
                 selectedServices.Add(service);
                 total += service.Preco;
             }

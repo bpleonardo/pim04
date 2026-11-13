@@ -51,7 +51,8 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
     } else {
       employees = await api.employees();
     }
-    services = await api.services();
+    services =
+        (await api.services()).where((service) => service.enabled).toList();
     await loadTimeSlots();
   }
 

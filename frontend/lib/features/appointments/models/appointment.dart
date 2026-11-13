@@ -26,7 +26,12 @@ class Appointment {
               (j['funcionario']?['id'] ?? j['idFuncionario'] ?? '').toString(),
           services: [
             for (final s in (j['servicos'] as List? ?? []))
-              s is Map ? s['nome'].toString() : s.toString()
+              if (s is Map)
+                s['ativo'] == false
+                    ? "${s['nome']} (desabilitado)"
+                    : s['nome'].toString()
+              else
+                s.toString()
           ]);
 
   Map<String, dynamic> toJson() => {

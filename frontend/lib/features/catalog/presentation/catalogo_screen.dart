@@ -184,6 +184,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                           if (service.description case final String description)
                             description,
                           'R\$ $price',
+                          if (!service.enabled) 'Desabilitado',
                         ].join('\n')),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -194,8 +195,24 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                               icon: const Icon(Icons.edit_outlined),
                             ),
                             IconButton(
-                              onPressed: _busy ? null : () => _delete(service),
-                              tooltip: 'Excluir ${service.name}',
+                              onPressed: _busy
+                                  ? null
+                                  : () => _change(() => _repository.setEnabled(
+                                      service, !service.enabled)),
+                              tooltip: service.enabled
+                                  ? 'Desabilitar serviço'
+                                  : 'Reativar serviço',
+                              icon: Icon(service.enabled
+                                  ? Icons.block
+                                  : Icons.check_circle_outline),
+                            ),
+                            IconButton(
+                              onPressed: _busy || service.linked
+                                  ? null
+                                  : () => _delete(service),
+                              tooltip: service.linked
+                                  ? 'Serviço vinculado a agendamentos'
+                                  : 'Excluir ${service.name}',
                               icon: const Icon(Icons.delete_outline),
                             ),
                           ],
