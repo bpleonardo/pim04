@@ -146,41 +146,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (peak == 0)
           const Text('Sem faturamento realizado no período.')
         else
-          SizedBox(
-            height: 140,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (final entry in realizedByDay.entries)
-                  Expanded(
-                    child: Tooltip(
-                      message:
-                          '${shopDateLabel(entry.key)} · ${_currency(entry.value)}',
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              height:
-                                  108 * (entry.value / peak).clamp(0.0, 1.0) +
-                                      2,
-                              color: theme.colorScheme.primary,
-                            ),
-                            if (realizedByDay.length <= 7 ||
-                                entry.key == agenda.keys.first ||
-                                entry.key.day % 5 == 0 ||
-                                entry.key == agenda.keys.last)
-                              Text('${entry.key.day}',
-                                  style: theme.textTheme.labelSmall)
-                            else
-                              const SizedBox(height: 16),
-                          ],
-                        ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  for (final entry in realizedByDay.entries)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            spacing: 12,
+                            children: [
+                              Text(shopDateLabel(entry.key),
+                                  style: theme.textTheme.bodyMedium),
+                              Text(_currency(entry.value),
+                                  style: theme.textTheme.titleSmall),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          LinearProgressIndicator(
+                            value: (entry.value / peak).clamp(0.0, 1.0),
+                            minHeight: 8,
+                            borderRadius: BorderRadius.circular(4),
+                            backgroundColor:
+                                theme.colorScheme.surfaceContainerHighest,
+                            semanticsLabel: shopDateLabel(entry.key),
+                            semanticsValue: _currency(entry.value),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         const SizedBox(height: 20),
