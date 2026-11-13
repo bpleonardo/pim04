@@ -125,7 +125,7 @@
 
 /* Placeholder dos campos */
 .form-control::placeholder {
-  color: #6f6a65;
+  color: var(--muted);
 }
 
 /* Foco nos campos do formulário */
