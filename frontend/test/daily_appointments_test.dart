@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ class FakeAgendaRepository extends AppointmentRepository {
     appointment('3', 'cancelado')
   ];
   int completionCalls = 0;
+  Completer<DailyAgenda>? delayedLoad;
   bool failLoad = false;
   bool failCompletion = false;
   bool offline = false;
@@ -43,6 +45,7 @@ class FakeAgendaRepository extends AppointmentRepository {
   String? queuedId;
   @override
   Future<DailyAgenda> loadDay(DateTime date) async {
+    if (delayedLoad != null) return delayedLoad!.future;
     if (failLoad) throw Exception('Sem conexão');
     final id = queuedId;
     if (id != null && !offline) {
@@ -88,6 +91,47 @@ void main() {
     ApiClient.signOut();
   });
 
+  testWidgets('Controles mobile reativam após carregamento assíncrono',
+      (tester) async {
+    final pending = Completer<DailyAgenda>();
+    final repo = FakeAgendaRepository()..delayedLoad = pending;
+    await tester
+        .pumpWidget(MaterialApp(home: CortesDiaScreen(repository: repo)));
+    await tester.pump();
+    expect(
+        tester
+            .widget<IconButton>(find.byWidgetPredicate((widget) =>
+                widget is IconButton && widget.tooltip == 'Selecionar data'))
+            .onPressed,
+        isNull);
+    expect(
+        tester
+            .widget<FloatingActionButton>(find.byWidgetPredicate((widget) =>
+                widget is FloatingActionButton &&
+                widget.tooltip == 'Novo agendamento'))
+            .onPressed,
+        isNull);
+    pending.complete(const DailyAgenda([]));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<IconButton>(find.byWidgetPredicate((widget) =>
+                widget is IconButton && widget.tooltip == 'Selecionar data'))
+            .onPressed,
+        isNotNull);
+    expect(
+        tester
+            .widget<FloatingActionButton>(find.byWidgetPredicate((widget) =>
+                widget is FloatingActionButton &&
+                widget.tooltip == 'Novo agendamento'))
+            .onPressed,
+        isNotNull);
+    await tester.tap(find.byWidgetPredicate((widget) =>
+        widget is IconButton && widget.tooltip == 'Selecionar data'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+  });
+
   testWidgets('Android e iOS usam a agenda do barbeiro nas rotas de consulta',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: SizedBox()));
@@ -124,7 +168,11 @@ void main() {
     expect(find.text('Ana Costa'), findsOneWidget);
     expect(find.text('10:00'), findsNWidgets(3));
     expect(find.text('Concluir corte'), findsOneWidget);
-    expect(find.byTooltip('Novo agendamento'), findsOneWidget);
+    expect(
+        find.byWidgetPredicate((widget) =>
+            widget is FloatingActionButton &&
+            widget.tooltip == 'Novo agendamento'),
+        findsOneWidget);
     expect(find.text('Novo agendamento'), findsNothing);
     expect(find.text('1 pendente • 1 concluído'), findsOneWidget);
   });
@@ -248,7 +296,11 @@ void main() {
     expect(find.text('N&E'), findsOneWidget);
     expect(find.text('Agendamentos'), findsOneWidget);
     expect(find.text('Selecionar'), findsOneWidget);
-    expect(find.byTooltip('Novo agendamento'), findsOneWidget);
+    expect(
+        find.byWidgetPredicate((widget) =>
+            widget is FloatingActionButton &&
+            widget.tooltip == 'Novo agendamento'),
+        findsOneWidget);
     expect(find.text('10:00'), findsNWidgets(3));
     final day = repo.requestedDates.single;
     await tester.tap(find.byTooltip('Próximo dia'));
@@ -274,7 +326,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Agendamentos'), findsOneWidget);
-    expect(find.byTooltip('Novo agendamento'), findsOneWidget);
+    expect(
+        find.byWidgetPredicate((widget) =>
+            widget is FloatingActionButton &&
+            widget.tooltip == 'Novo agendamento'),
+        findsOneWidget);
     expect(find.text('N&E'), findsNothing);
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();

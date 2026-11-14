@@ -63,7 +63,11 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
       shouldRetry = error.retryable;
       rethrow;
     } finally {
-      _loading = false;
+      if (mounted) {
+        setState(() => _loading = false);
+      } else {
+        _loading = false;
+      }
       final lifecycle = WidgetsBinding.instance.lifecycleState;
       if (mounted &&
           (lifecycle == null || lifecycle == AppLifecycleState.resumed) &&
