@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:barbearia_frontend/app/layout/desktop_layout.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,10 +24,12 @@ Appointment appointment(String id, String status) => Appointment(
 
 class FakeAgendaRepository extends AppointmentRepository {
   final requestedDates = <DateTime>[];
+  Completer<List<Appointment>>? delayedList;
 
   @override
   Future<List<Appointment>> list({DateTime? date}) async {
     if (date != null) requestedDates.add(date);
+    if (delayedList != null) return delayedList!.future;
     return items;
   }
 
@@ -89,6 +92,43 @@ void main() {
   tearDown(() {
     debugDefaultTargetPlatformOverride = null;
     ApiClient.signOut();
+  });
+
+  testWidgets('Painel troca telas e aceita setas enquanto a consulta demora',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final pending = Completer<List<Appointment>>();
+    final repo = FakeAgendaRepository()..delayedList = pending;
+    await tester.pumpWidget(MaterialApp(
+        home: DesktopLayout(
+      initialRoute: AppRouter.home,
+      initialContent: AgendaScreen(repository: repo, embedded: true),
+    )));
+    await tester.pump();
+    final day = repo.requestedDates.single;
+    for (var count = 0; count < 3; count++) {
+      await tester.tap(find.byTooltip('Próximo dia'));
+      await tester.pump();
+    }
+    expect(
+        repo.requestedDates.last, DateTime(day.year, day.month, day.day + 3));
+    expect(find.text(shopDateLabel(repo.requestedDates.last)), findsOneWidget);
+    await tester.tap(find.text('Serviços'));
+    await tester.pump();
+    expect(find.text('Novo serviço'), findsOneWidget);
+    expect(find.byTooltip('Próximo dia'), findsNothing);
+    await tester.tap(find.text('Dashboard').first);
+    await tester.pump();
+    expect(find.text('Resumo de atendimentos'), findsOneWidget);
+    expect(find.text('Novo serviço'), findsNothing);
+    pending.complete([]);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('Controles mobile reativam após carregamento assíncrono',

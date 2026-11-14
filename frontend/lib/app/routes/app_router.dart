@@ -87,7 +87,8 @@ class _SmoothPageRoute<T> extends MaterialPageRoute<T> {
   });
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 150);
+  Duration get transitionDuration =>
+      AppPlatform.mobile ? const Duration(milliseconds: 150) : Duration.zero;
 
   @override
   Widget buildTransitions(
@@ -96,7 +97,8 @@ class _SmoothPageRoute<T> extends MaterialPageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+    if (!AppPlatform.mobile ||
+        (MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
       return child;
     }
     final offset = Tween<Offset>(

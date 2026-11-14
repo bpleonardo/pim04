@@ -179,12 +179,9 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                           const Divider(height: 1),
                         ],
                         Expanded(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 150),
-                            child: KeyedSubtree(
-                              key: ValueKey(currentRoute),
-                              child: currentContent,
-                            ),
+                          child: KeyedSubtree(
+                            key: ValueKey(currentRoute),
+                            child: currentContent,
                           ),
                         ),
                       ],
