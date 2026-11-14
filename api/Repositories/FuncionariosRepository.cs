@@ -32,6 +32,15 @@ namespace api.Repositories
                 .ToArrayAsync();
         }
 
+        public async Task<FuncionarioPublicoDTO[]> GetPublic()
+        {
+            return await _context.Funcionarios
+                .AsNoTracking()
+                .OrderBy(f => f.Nome)
+                .Select(f => new FuncionarioPublicoDTO(f.Id, f.Nome))
+                .ToArrayAsync();
+        }
+
         /// <summary>
         /// Retrieves an employee by their unique identifier or null if not found.
         /// </summary>

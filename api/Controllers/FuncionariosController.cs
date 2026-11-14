@@ -13,10 +13,12 @@ namespace api.Controllers
 
         // GET: /api/funcionarios
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<FuncionarioDTO[]>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<FuncionarioDTO[]>>> Get()
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse<object>>> Get()
         {
-            var funcionarios = await _service.GetAll();
+            object funcionarios = User.Identity?.IsAuthenticated == true
+                ? await _service.GetAll()
+                : await _service.GetPublic();
             return Ok(ApiResponse.Ok(funcionarios));
         }
     }

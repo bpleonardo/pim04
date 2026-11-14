@@ -17,6 +17,8 @@ namespace api.Services
             return await _repo.GetAll();
         }
 
+        public Task<FuncionarioPublicoDTO[]> GetPublic() => _repo.GetPublic();
+
         /// <summary>
         /// Retrieves a single employee by id or throws ResourceNotFoundException.
         /// </summary>
@@ -35,8 +37,8 @@ namespace api.Services
                 null,
                 dto.Nome,
                 dto.Telefone,
-                dto.CPF,
-                dto.Email,
+                dto.CPF ?? string.Empty,
+                dto.Email ?? string.Empty,
                 dto.Endereco
             );
 

@@ -8,6 +8,12 @@ namespace api.DTOs
         public string Nome { get; init; } = nome;
     }
 
+    public readonly struct FuncionarioPublicoDTO(Guid id, string nome)
+    {
+        public Guid Id { get; init; } = id;
+        public string Nome { get; init; } = nome;
+    }
+
     public struct FuncionarioDTO(
         Guid id,
         string nome,
