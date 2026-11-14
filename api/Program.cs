@@ -1,5 +1,8 @@
+using System.Text;
 using api.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using static api.Utilities.Functions;
 
@@ -37,7 +40,6 @@ namespace api
             builder.Services.AddScoped<Services.ServicosService>();
 
             builder.Services.AddScoped<Repositories.ClientesRepository>();
-            builder.Services.AddScoped<Services.ClientesService>();
 
             builder.Services.AddScoped<Repositories.HorariosRepository>();
             builder.Services.AddScoped<Services.HorariosService>();
@@ -51,9 +53,60 @@ namespace api
             builder.Services.AddScoped<Repositories.FuncionariosRepository>();
             builder.Services.AddScoped<Services.FuncionariosService>();
 
-            builder.Services.AddScoped<Services.DashboardService>();
-            builder.Services.AddScoped<Services.FinanceiroService>();
 
+            // O Flutter Web usa uma porta local variável durante o desenvolvimento.
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddCors(options =>
+                    options.AddPolicy(
+                        "FlutterLocal",
+                        policy =>
+                            policy
+                                .SetIsOriginAllowed(origin =>
+                                    Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                                    && uri.IsLoopback
+                                    && (uri.Scheme == "http" || uri.Scheme == "https")
+                                )
+                                .AllowAnyHeader()
+                                .WithExposedHeaders("Access-Token-Expired")
+                                .AllowAnyMethod()
+                    )
+                );
+            }
+
+            var jwtSecret = Environment.GetEnvironmentVariable("JWT_KEY");
+            if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+                throw new InvalidOperationException("JWT_KEY must contain at least 32 bytes.");
+
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+            builder.Services.AddSingleton(signingKey);
+            builder
+                .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnChallenge = context =>
+                        {
+                            if (context.AuthenticateFailure is SecurityTokenExpiredException)
+                                context.Response.Headers["Access-Token-Expired"] = "true";
+                            return Task.CompletedTask;
+                        },
+                    };
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = signingKey,
+                        ValidateIssuer = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "api",
+                        ValidateAudience = true,
+                        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "client",
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero,
+                        ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                    };
+                });
+            builder.Services.AddAuthorization();
             builder.Services.AddExceptionHandler<Utilities.GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
 
@@ -98,14 +151,6 @@ namespace api
                 await db.Database.MigrateAsync();
             }
 
-            app.UseWhen(
-                context => context.Request.Headers.ContainsKey("Nonce"),
-                appBuilder =>
-                {
-                    appBuilder.UseMiddleware<Utilities.NonceMiddleware>();
-                }
-            );
-
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -114,8 +159,25 @@ namespace api
                 app.UseSwaggerUI();
             }
 
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseCors("FlutterLocal");
+            }
+
+            app.UseAuthentication();
             app.UseAuthorization();
 
+            app.UseWhen(
+                context => context.Request.Headers.ContainsKey("Nonce")
+                    && !context.Request.Path.StartsWithSegments("/api/login", StringComparison.OrdinalIgnoreCase),
+                appBuilder =>
+                {
+                    appBuilder.UseMiddleware<Utilities.NonceMiddleware>();
+                }
+            );
+
+
+            app.MapGet("/api/ping", () => Results.Ok(new { status = "ok" }));
             app.MapControllers();
 
             await app.RunAsync();

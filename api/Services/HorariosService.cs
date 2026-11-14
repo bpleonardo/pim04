@@ -13,7 +13,8 @@ namespace api.Services
         /// </summary>
         public async Task<List<HorarioDTO>> GetHorariosDisponiveis(DateOnly date)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone));
 
             if (date < today)
             {

@@ -28,6 +28,11 @@ namespace api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ClientRequestId").HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("LastMutationId").HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("RequestHash").HasColumnType("text");
+                    b.Property<long>("Revision").IsConcurrencyToken().HasColumnType("bigint");
+
                     b.Property<DateTime>("DataAgendamento")
                         .HasColumnType("timestamp with time zone");
 
@@ -50,6 +55,8 @@ namespace api.Migrations
                         .HasColumnType("double precision");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientRequestId").IsUnique();
 
                     b.HasIndex("IdCliente");
 
@@ -126,11 +133,28 @@ namespace api.Migrations
                     b.ToTable("Funcionarios");
                 });
 
+            modelBuilder.Entity("api.Models.RefreshSession", b =>
+                {
+                    b.Property<Guid>("Jti")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EmployeeId").HasColumnType("uuid");
+                    b.Property<DateTime>("ExpiresAt").HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Jti");
+                    b.HasIndex("EmployeeId");
+                    b.ToTable("RefreshSessions");
+                });
+
             modelBuilder.Entity("api.Models.Servico", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Descricao")
                         .HasColumnType("text");
@@ -227,6 +251,17 @@ namespace api.Migrations
                     b.Navigation("Agendamento");
 
                     b.Navigation("Servico");
+                });
+
+            modelBuilder.Entity("api.Models.RefreshSession", b =>
+                {
+                    b.HasOne("api.Models.Usuario", "User")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>

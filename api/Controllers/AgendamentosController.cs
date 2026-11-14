@@ -1,4 +1,6 @@
 using api.DTOs;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using api.Services;
 using api.Utilities;
 using Microsoft.AspNetCore.Mvc;
@@ -9,17 +11,45 @@ namespace api.Controllers
     [ApiController]
     public class AgendamentosController(AgendamentosService service) : ControllerBase
     {
+        private string? MutationId()
+        {
+            var nonce = Request.Headers["Nonce"].ToString();
+            return nonce.Length == 32 && nonce.All(Uri.IsHexDigit) ? nonce : null;
+        }
+
         private readonly AgendamentosService _service = service;
 
-        // GET: /api/agendamentos?date=2026-05-26
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<MinAgendamentoDTO[]>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<MinAgendamentoDTO[]>>> Get(
-            [FromQuery] DateOnly? date
+        public async Task<ActionResult> Get(
+            [FromQuery] DateOnly? date,
+            [FromQuery] bool mine = false
         )
         {
-            var agendamentos = await _service.GetAll(date);
-            return Ok(ApiResponse.Ok(agendamentos));
+            Guid? employeeId = null;
+            if (mine)
+            {
+                if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var ownerId))
+                    return Unauthorized();
+                employeeId = ownerId;
+            }
+
+            return Ok(ApiResponse.Ok(await _service.GetAll(date, employeeId)));
+        }
+
+        [Authorize]
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult> GetOne(Guid id)
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId)) return Unauthorized();
+            return Ok(ApiResponse.Ok(await _service.GetOne(id, employeeId)));
+        }
+
+        [Authorize]
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult> Put(Guid id, [FromBody] AgendamentoEditDTO dto)
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId)) return Unauthorized();
+            return Ok(ApiResponse.Ok(await _service.Edit(id, employeeId, dto, MutationId())));
         }
 
         // POST: /api/agendamentos
@@ -35,19 +65,26 @@ namespace api.Controllers
             [FromBody] AgendamentoCreateDTO dto
         )
         {
+            if (dto.RecordedAt.HasValue &&
+                (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId) || employeeId != dto.IdFuncionario || dto.ClientRequestId is null))
+                return Unauthorized();
             var result = await _service.CreateOne(dto);
-            return CreatedAtAction(nameof(Get), new { }, ApiResponse.Ok(result));
+            return StatusCode(StatusCodes.Status201Created, ApiResponse.Ok(result));
         }
 
         // PATCH: /api/agendamentos/{id}
+        [Authorize]
         [HttpPatch("{id:guid}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiResponse<MinAgendamentoDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult> Patch(Guid id, [FromBody] AgendamentoUpdateDTO dto)
         {
-            await _service.UpdateStatus(id, dto.Status);
-            return NoContent();
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId))
+                return Unauthorized();
+
+            await _service.UpdateStatus(id, dto.Status, employeeId, dto.ExpectedRevision, MutationId());
+            return Ok(ApiResponse.Ok(await _service.GetOne(id, employeeId)));
         }
     }
 }

@@ -1,0 +1,47 @@
+// Controla o foco dos links do menu para não deixar TAB em itens escondidos no mobile.
+document.addEventListener('DOMContentLoaded', () => {
+  const navCollapse = document.getElementById('navPrincipal');
+  if (!navCollapse) return;
+
+  navCollapse.addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    const section = document.getElementById(link.hash.slice(1));
+    if (!section) return;
+
+    event.preventDefault();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' });
+  });
+
+  // Links que precisam ficar navegáveis apenas quando o menu estiver visível.
+  const navLinks = Array.from(navCollapse.querySelectorAll('a'));
+  const media = window.matchMedia('(min-width: 768px)');
+
+  // Aplica ou remove o TAB dos links do menu.
+  function setNavTab(enabled) {
+    navLinks.forEach(link => {
+      link.setAttribute('tabindex', enabled ? '0' : '-1');
+    });
+  }
+
+  // No desktop, o menu é sempre navegável.
+  // No mobile, só liberamos o TAB quando o collapse estiver aberto.
+  function atualizarTabMenu() {
+    if (media.matches) {
+      setNavTab(true);
+    } else {
+      setNavTab(navCollapse.classList.contains('show'));
+    }
+  }
+
+  // Atualiza o TAB junto com os eventos nativos do Bootstrap collapse.
+  navCollapse.addEventListener('shown.bs.collapse', () => setNavTab(true));
+  navCollapse.addEventListener('hidden.bs.collapse', () => setNavTab(false));
+
+  // Reavalia o comportamento quando a tela muda de tamanho.
+  media.addEventListener('change', atualizarTabMenu);
+
+  atualizarTabMenu();
+});

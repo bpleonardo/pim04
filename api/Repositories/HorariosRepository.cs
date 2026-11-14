@@ -40,6 +40,7 @@ namespace api.Repositories
                 .Select(a => new { a.IdFuncionario, a.DataAgendamento })
                 .ToListAsync();
 
+            var utcNow = DateTime.UtcNow;
             var horarios = new List<HorarioDTO>();
             var current = startTime;
 
@@ -49,14 +50,14 @@ namespace api.Repositories
                 var slotLocal = date.ToDateTime(current, DateTimeKind.Unspecified);
                 var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotLocal, tz);
 
-                // Slot está disponível se pelo menos um funcionário não estiver com agendamento ativo
+                // Um horário futuro está disponível se houver pelo menos um funcionário livre
                 var busyCount = busyAppointments
                     .Where(a => a.DataAgendamento == slotUtc)
                     .Select(a => a.IdFuncionario)
                     .Distinct()
                     .Count();
 
-                var isAvailable = totalFuncionarios > 0 && busyCount < totalFuncionarios;
+                var isAvailable = slotUtc > utcNow && busyCount < totalFuncionarios;
 
                 horarios.Add(new HorarioDTO(slotStr, isAvailable));
 

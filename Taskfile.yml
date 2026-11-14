@@ -7,6 +7,11 @@ vars:
   SUDO_CMD: '{{if eq OS "linux"}}sudo{{end}}'
 
 tasks:
+  "build:web":
+    desc: Compila o painel Flutter para /admin/
+    dir: frontend
+    cmds:
+      - flutter build web --base-href=/admin/
   "start:api":
     desc: "Inicia a API"
     cmds:

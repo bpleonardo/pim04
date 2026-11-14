@@ -6,6 +6,9 @@ namespace api.Services
 {
     public class FinanceiroService(AgendamentosRepository agendamentosRepo)
     {
+        private static string ServiceLabel(ServicoDTO service) =>
+            service.Ativo ? service.Nome : $"{service.Nome} (desabilitado)";
+
         private readonly AgendamentosRepository _agendamentosRepo = agendamentosRepo;
 
         /// <summary>
@@ -54,10 +57,10 @@ namespace api.Services
             {
                 foreach (var service in appt.Servicos)
                 {
-                    if (!serviceBreakdown.ContainsKey(service.Nome))
-                        serviceBreakdown[service.Nome] = 0;
+                    if (!serviceBreakdown.ContainsKey(ServiceLabel(service)))
+                        serviceBreakdown[ServiceLabel(service)] = 0;
 
-                    serviceBreakdown[service.Nome] += service.Preco;
+                    serviceBreakdown[ServiceLabel(service)] += service.Preco;
                 }
             }
 
@@ -79,7 +82,7 @@ namespace api.Services
                     {
                         Data = appt.DataAgendamento.ToString("dd/MM/yyyy"),
                         Cliente = appt.Cliente.Nome,
-                        Servico = svc.Nome,
+                        Servico = ServiceLabel(svc),
                         Valor = svc.Preco.ToString("C2"),
                     })
                 )

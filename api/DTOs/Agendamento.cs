@@ -9,10 +9,12 @@ namespace api.DTOs
         double total,
         ServicoDTO[] servicos,
         MinClienteDTO cliente,
-        MinFuncionarioDTO funcionario
+        MinFuncionarioDTO funcionario,
+        long revision = 0
     )
     {
         public Guid Id { get; init; } = id;
+        public long Revision { get; init; } = revision;
         public DateTime DataAgendamento { get; init; } = dataAgendamento;
         public string Status { get; init; } = status;
         public double Total { get; init; } = total;
@@ -26,6 +28,9 @@ namespace api.DTOs
     /// </summary>
     public struct AgendamentoCreateDTO
     {
+        [RegularExpression(@"^[a-f0-9]{32}$")]
+        public string? ClientRequestId { get; set; }
+        public DateTime? RecordedAt { get; set; }
         [Required(ErrorMessage = "{0} é obrigatório!")]
         [MinLength(3, ErrorMessage = "{0} deve conter pelo menos {1} caracteres!")]
         public string NomeCliente { get; set; }
@@ -49,11 +54,21 @@ namespace api.DTOs
         public DateTime DataAgendamento { get; set; }
 
         [Required(ErrorMessage = "Pelo menos um serviço é obrigatório!")]
+        [MinLength(1)]
         public Guid[]? IdServicos { get; set; }
+    }
+
+    public struct AgendamentoEditDTO
+    {
+        public AgendamentoCreateDTO Booking { get; set; }
+        [Range(0, long.MaxValue)]
+        public long ExpectedRevision { get; set; }
     }
 
     public struct AgendamentoUpdateDTO
     {
+        [Range(0, long.MaxValue)]
+        public long? ExpectedRevision { get; set; }
         [Required]
         [RegularExpression(@"^(agendado|concluido|cancelado)$", ErrorMessage = "Status inválido.")]
         public string Status { get; set; }
@@ -62,6 +77,9 @@ namespace api.DTOs
     public readonly struct AgendamentoResponseDTO
     {
         public Guid Id { get; init; }
+        public long Revision { get; init; }
+        public string TelefoneCliente { get; init; }
+        public Guid[] ServiceIds { get; init; }
         public string NomeCliente { get; init; }
         public string NomeFuncionario { get; init; }
         public DateTime DataAgendamento { get; init; }

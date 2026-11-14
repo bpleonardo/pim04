@@ -2,8 +2,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs
 {
-    public readonly struct ServicoDTO(Guid id, string nome, string? descricao, double preco)
+    public readonly struct ServicoDTO(Guid id, string nome, string? descricao, double preco, bool ativo = true, bool vinculado = false)
     {
+        public bool Ativo { get; init; } = ativo;
+        public bool Vinculado { get; init; } = vinculado;
         public Guid Id { get; init; } = id;
         public string Nome { get; init; } = nome;
         public string? Descricao { get; init; } = descricao;
@@ -26,6 +28,8 @@ namespace api.DTOs
 
     public struct ServicoUpdateDTO
     {
+        public bool? Ativo { get; set; }
+
         [MinLength(3, ErrorMessage = "{0} deve conter pelo menos {1} caracteres!")]
         public string? Nome { get; set; }
 

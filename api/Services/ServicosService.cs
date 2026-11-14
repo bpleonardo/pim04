@@ -12,23 +12,18 @@ namespace api.Services
         /// <summary>
         /// Retrieves all services.
         /// </summary>
-        public async Task<Servico[]> GetAll()
-        {
-            var dbServicos = await _repo.GetAll();
-
-            return [.. dbServicos.Select(s => new Servico(s.Id, s.Nome, s.Descricao, s.Preco))];
-        }
+        public Task<ServicoDTO[]> GetAll() => _repo.GetAll();
 
         /// <summary>
         /// Retrieves a single service by id or throws ResourceNotFoundException.
         /// </summary>
-        public async Task<Servico> GetOne(Guid id)
+        public async Task<ServicoDTO> GetOne(Guid id)
         {
             var service =
                 await _repo.GetOne(id)
                 ?? throw new ResourceNotFoundException("Serviço não encontrado.");
 
-            return new Servico(service.Id, service.Nome, service.Descricao, service.Preco);
+            return service;
         }
 
         /// <summary>
@@ -72,7 +67,7 @@ namespace api.Services
                 dto.Preco ?? existing.Preco
             );
 
-            var updateResult = await _repo.UpdateOne(updatedServico);
+            var updateResult = await _repo.UpdateOne(updatedServico, enabled: dto.Ativo);
 
             if (!updateResult)
             {

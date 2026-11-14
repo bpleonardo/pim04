@@ -22,3 +22,13 @@ services:
     ports:
       - '80:80'
     restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./front_web:/srv/public:ro
+      - type: bind
+        source: ./frontend/build/web
+        target: /srv/flutter/admin
+        read_only: true
+        bind:
+          create_host_path: false
