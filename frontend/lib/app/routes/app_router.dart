@@ -8,6 +8,8 @@ import 'package:barbearia_frontend/features/appointments/presentation/agendament
 import 'package:barbearia_frontend/features/appointments/presentation/agenda_screen.dart';
 import 'package:barbearia_frontend/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:barbearia_frontend/features/settings/presentation/api_settings_screen.dart';
+import 'package:barbearia_frontend/features/employees/presentation/employees_screen.dart';
+import 'package:barbearia_frontend/features/availability/presentation/availability_screen.dart';
 
 class AppRouter {
   static const login = '/login';
@@ -17,6 +19,8 @@ class AppRouter {
   static const agenda = '/agenda';
   static const dashboard = '/dashboard';
   static const settingsRoute = '/configuracoes';
+  static const employees = '/funcionarios';
+  static const availability = '/disponibilidade';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     if (!AppPlatform.mobile &&
@@ -60,6 +64,13 @@ class AppRouter {
               initialRoute: settingsRoute,
               initialContent: const ApiSettingsScreen(embedded: true),
             ),
+      employees => AppPlatform.mobile
+          ? const EmployeesScreen()
+          : DesktopLayout(
+              initialRoute: employees,
+              initialContent: const EmployeesScreen(embedded: true),
+            ),
+      availability => const AvailabilityScreen(),
       _ => const Scaffold(body: Center(child: Text('Página não encontrada'))),
     };
     return _SmoothPageRoute<void>(
@@ -74,6 +85,8 @@ class AppRouter {
         newAppointment => const AgendamentoScreen(embedded: true),
         dashboard => const DashboardScreen(embedded: true),
         settingsRoute => const ApiSettingsScreen(embedded: true),
+        employees => const EmployeesScreen(embedded: true),
+        availability => const AvailabilityScreen(embedded: true),
         _ => const Scaffold(
             body: Center(child: Text('Página não encontrada')),
           ),

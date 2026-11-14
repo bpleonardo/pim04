@@ -33,7 +33,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 
 WORKDIR /app
 
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache krb5-libs tzdata
 
 # Copy everything needed to run the app from the "build" stage.
 COPY --from=build /app .

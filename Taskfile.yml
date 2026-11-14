@@ -5,6 +5,7 @@ version: '3'
 vars:
   BUILD_ENV: dev
   SUDO_CMD: '{{if eq OS "linux"}}sudo{{end}}'
+  NO_DAEMON: '{{default "false" .NO_DAEMON}}'
 
 tasks:
   "build:web":
@@ -18,10 +19,10 @@ tasks:
       - cmd: echo "Iniciando a API ({{.BUILD_ENV}})."
         silent: true
 
-      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml -f resources/docker/docker-compose.dev.yml up --build -d {{.CLI_ARGS}}'
+      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml -f resources/docker/docker-compose.dev.yml up --build {{if eq .NO_DAEMON "false"}}-d{{end}} {{.CLI_ARGS}}'
         if: '[ "{{.BUILD_ENV}}" = "dev" ]'
 
-      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml -f resources/docker/docker-compose.prod.yml up --build -d {{.CLI_ARGS}}'
+      - cmd: '{{.SUDO_CMD}} docker compose -f docker-compose.yml -f resources/docker/docker-compose.prod.yml up --build {{if eq .NO_DAEMON "false"}}-d{{end}} {{.CLI_ARGS}}'
         if: '[ "{{.BUILD_ENV}}" = "prod" ]'
   "stop:api":
     desc: "Para a API"

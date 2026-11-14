@@ -59,6 +59,8 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 children: [
                   _navigationItem(AppRouter.home, 'Agendamentos'),
                   _navigationItem(AppRouter.catalog, 'Serviços'),
+                  _navigationItem(AppRouter.employees, 'Funcionários'),
+                  _navigationItem(AppRouter.availability, 'Disponibilidade'),
                   _navigationItem(AppRouter.dashboard, 'Dashboard'),
                 ],
               ),
@@ -106,6 +108,8 @@ class _DesktopLayoutState extends State<DesktopLayout> {
   String get title => switch (currentRoute) {
         AppRouter.catalog => 'Serviços',
         AppRouter.dashboard => 'Dashboard',
+        AppRouter.employees => 'Funcionários',
+        AppRouter.availability => 'Disponibilidade',
         AppRouter.newAppointment => 'Novo agendamento',
         AppRouter.settingsRoute => 'Configurações',
         _ => 'Agendamentos',

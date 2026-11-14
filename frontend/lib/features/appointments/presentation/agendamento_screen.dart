@@ -103,6 +103,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
       slot = originalSlot;
       return;
     }
+    api.selectedEmployeeId = employeeId;
     timeSlots =
         await (offlineRepo?.slots(selectedDate) ?? api.timeSlots(selectedDate));
     slot = originalSlot;
@@ -123,6 +124,36 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
     phone.dispose();
     super.dispose();
   }
+
+  bool _appointmentChanged(Appointment before, Appointment current) {
+    final beforeServices = [...before.serviceIds]..sort();
+    final currentServices = [...current.serviceIds]..sort();
+    return before.clientName != current.clientName ||
+        before.phone != current.phone ||
+        before.employeeId != current.employeeId ||
+        DateTime.parse(before.scheduledAt).toUtc() !=
+            DateTime.parse(current.scheduledAt).toUtc() ||
+        jsonEncode(beforeServices) != jsonEncode(currentServices);
+  }
+
+  Future<bool> _confirmServerChange() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          content: const Text('Esse agendamento foi alterado no servidor.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Voltar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Salvar mesmo assim'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 
   Future<void> confirm() async {
     if (busy) return;
@@ -157,6 +188,18 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
         _bookingNonce = ApiClient.newNonce();
       }
       final original = widget.appointment;
+      var current = original;
+      if (original != null &&
+          !widget.recreate &&
+          offlineRepo?.offline != true &&
+          !ApiClient.connectionUnavailable) {
+        final latest = await api.appointment(original.id);
+        if (_appointmentChanged(original, latest) &&
+            !(await _confirmServerChange())) {
+          return;
+        }
+        current = latest;
+      }
       final unchangedTime = original != null &&
           !widget.recreate &&
           DateTime.parse(original.scheduledAt).toUtc() == scheduledAt;
@@ -174,7 +217,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
       var pending = false;
       if (repository != null) {
         booking['recordedAt'] = DateTime.now().toUtc().toIso8601String();
-        final existing = widget.appointment;
+        final existing = current;
         final creating = existing == null || widget.recreate;
         final id = creating ? 'local:$_bookingNonce' : existing.id;
         final selected =
@@ -182,7 +225,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
         final preview = Appointment(
             id: id,
             scheduledAt: scheduledAt.toIso8601String(),
-            status: 'agendado',
+            status: existing?.status ?? 'agendado',
             clientName: name.text.trim(),
             phone: phone.text.trim(),
             employeeName: ApiClient.user!.name,
@@ -196,17 +239,28 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
             preview,
             creating
                 ? {...booking, 'clientRequestId': _bookingNonce}
-                : {'booking': booking, 'expectedRevision': existing.revision},
+                : {
+                    'booking': booking,
+                    'expectedRevision': existing.revision,
+                  },
             replacingConflict: widget.conflictEntityId);
         pending = (await repository.pending()).any((p) => p.entityId == id);
       } else {
-        await api.createAppointment(
-            name: name.text.trim(),
-            phone: phone.text.trim(),
-            employeeId: employeeId!,
-            scheduledAt: scheduledAt,
-            services: services,
-            nonce: _bookingNonce);
+        if (current == null || widget.recreate) {
+          await api.createAppointment(
+              name: name.text.trim(),
+              phone: phone.text.trim(),
+              employeeId: employeeId!,
+              scheduledAt: scheduledAt,
+              services: services,
+              nonce: _bookingNonce);
+        } else {
+          await api.editAppointment(
+            current.id,
+            {'booking': booking},
+            nonce: _bookingNonce,
+          );
+        }
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -297,11 +351,25 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                             const InputDecoration(labelText: 'Barbeiro'),
                         items: [
                           for (final x in employees)
-                            DropdownMenuItem(value: x.id, child: Text(x.name))
+                            DropdownMenuItem(
+                              value: x.id,
+                              enabled: !x.isDeleted ||
+                                  widget.appointment?.employeeId == x.id,
+                              child: Text(
+                                x.isDeleted ? '${x.name} (Excluído)' : x.name,
+                              ),
+                            )
                         ],
                         onChanged: widget.forCurrentEmployee || busy
                             ? null
-                            : (v) => setState(() => employeeId = v)),
+                            : (v) async {
+                                setState(() {
+                                  employeeId = v;
+                                  slot = null;
+                                  timeSlots = [];
+                                });
+                                await loadTimeSlots();
+                              }),
                     const SizedBox(height: 16),
                     ListTile(
                         title: Text(

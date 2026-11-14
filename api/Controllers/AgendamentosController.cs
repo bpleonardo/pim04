@@ -1,8 +1,8 @@
-using api.DTOs;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
+using api.DTOs;
 using api.Services;
 using api.Utilities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
@@ -11,13 +11,13 @@ namespace api.Controllers
     [ApiController]
     public class AgendamentosController(AgendamentosService service) : ControllerBase
     {
+        private readonly AgendamentosService _service = service;
+
         private string? MutationId()
         {
             var nonce = Request.Headers["Nonce"].ToString();
             return nonce.Length == 32 && nonce.All(Uri.IsHexDigit) ? nonce : null;
         }
-
-        private readonly AgendamentosService _service = service;
 
         [HttpGet]
         public async Task<ActionResult> Get(
@@ -29,7 +29,9 @@ namespace api.Controllers
             if (mine)
             {
                 if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var ownerId))
+                {
                     return Unauthorized();
+                }
                 employeeId = ownerId;
             }
 
@@ -40,7 +42,10 @@ namespace api.Controllers
         [HttpGet("{id:guid}")]
         public async Task<ActionResult> GetOne(Guid id)
         {
-            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId)) return Unauthorized();
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId))
+            {
+                return Unauthorized();
+            }
             return Ok(ApiResponse.Ok(await _service.GetOne(id, employeeId)));
         }
 
@@ -48,7 +53,10 @@ namespace api.Controllers
         [HttpPut("{id:guid}")]
         public async Task<ActionResult> Put(Guid id, [FromBody] AgendamentoEditDTO dto)
         {
-            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId)) return Unauthorized();
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId))
+            {
+                return Unauthorized();
+            }
             return Ok(ApiResponse.Ok(await _service.Edit(id, employeeId, dto, MutationId())));
         }
 
@@ -65,8 +73,16 @@ namespace api.Controllers
             [FromBody] AgendamentoCreateDTO dto
         )
         {
-            if (dto.RecordedAt.HasValue &&
-                (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId) || employeeId != dto.IdFuncionario || dto.ClientRequestId is null))
+            if (
+                (dto.RecordedAt.HasValue || dto.ClientRequestId is not null)
+                && (
+                    !Guid.TryParse(
+                        User.FindFirstValue(ClaimTypes.NameIdentifier),
+                        out var employeeId
+                    )
+                    || employeeId != dto.IdFuncionario
+                )
+            )
                 return Unauthorized();
             var result = await _service.CreateOne(dto);
             return StatusCode(StatusCodes.Status201Created, ApiResponse.Ok(result));
@@ -83,7 +99,13 @@ namespace api.Controllers
             if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId))
                 return Unauthorized();
 
-            await _service.UpdateStatus(id, dto.Status, employeeId, dto.ExpectedRevision, MutationId());
+            await _service.UpdateStatus(
+                id,
+                dto.Status,
+                employeeId,
+                dto.ExpectedRevision,
+                MutationId()
+            );
             return Ok(ApiResponse.Ok(await _service.GetOne(id, employeeId)));
         }
     }

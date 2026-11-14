@@ -10,13 +10,45 @@ const estado = {
 const DIAS_LIMITE_SEM_HORARIOS = 10;
 
 const API_BASE = '/api';
-const htmlEntities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-const escapeHtml = value => String(value).replace(/[&<>"']/g, char => htmlEntities[char]);
+const htmlEntities = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+const escapeHtml = value =>
+  String(value).replace(/[&<>"']/g, char => htmlEntities[char]);
+
+async function requestJson(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, options);
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(
+      payload?.error?.message || `Falha na requisição (${response.status}).`
+    );
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+function formatarDataInput(data) {
+  return data.toISOString().split('T')[0];
+}
+
+function obterLimitesDeData() {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const limite = new Date(hoje);
+  limite.setDate(limite.getDate() + DIAS_LIMITE_SEM_HORARIOS);
+  return { minimo: formatarDataInput(hoje), maximo: formatarDataInput(limite) };
+}
 
 // Dados que alimentam a interface sem repetir markup no HTML.
-let SERVICOS = [];
+let servicosDisponiveis = [];
 
-let FUNCIONARIOS = [];
+let funcionarios = [];
 
 function iconeServico(nome) {
   const normalizado = nome.toLowerCase();
@@ -31,28 +63,26 @@ let serviceRequest = 0;
 async function carregarServicosDaApi() {
   const request = ++serviceRequest;
   const selectedIds = new Set(estado.servicos.map(service => service.id));
-  SERVICOS = [];
+  servicosDisponiveis = [];
   estado.servicos = [];
   atualizarTotal();
   setVisibilidade(dom.servicoErr, false);
   setTexto(dom.servicosGrid, 'Carregando serviços…');
 
   try {
-    const response = await fetch(`${API_BASE}/servicos`, { cache: 'no-store' });
-    if (!response.ok) throw new Error('Falha ao carregar serviços.');
-    const { data } = await response.json();
+    const { data } = await requestJson('/servicos', { cache: 'no-store' });
     if (request !== serviceRequest) return;
 
-    SERVICOS = data.filter(service => service.id && service.ativo !== false)
+    servicosDisponiveis = data.filter(service => service.id && service.ativo !== false)
       .map(service => ({
         id: service.id,
         nome: service.nome,
         preco: Number(service.preco),
         icone: iconeServico(service.nome),
       }));
-    estado.servicos = SERVICOS.filter(service => selectedIds.has(service.id));
+    estado.servicos = servicosDisponiveis.filter(service => selectedIds.has(service.id));
     atualizarTotal();
-    if (!SERVICOS.length) {
+    if (!servicosDisponiveis.length) {
       setTexto(dom.servicosGrid, 'Nenhum serviço disponível no momento.');
       return;
     }
@@ -69,17 +99,11 @@ async function carregarServicosDaApi() {
 
 async function carregarFuncionariosDaApi() {
   try {
-    const response = await fetch(`${API_BASE}/funcionarios`);
-
-    if (!response.ok) {
-      throw new Error(`Falha ao carregar funcionários (${response.status})`);
-    }
-
-    const payload = await response.json();
+    const payload = await requestJson('/funcionarios');
     const data = Array.isArray(payload?.data) ? payload.data : [];
 
     if (data.length) {
-      FUNCIONARIOS = data.map(f => ({ id: f.id, nome: f.nome, telefone: f.telefone }));
+      funcionarios = data.map(f => ({ id: f.id, nome: f.nome, telefone: f.telefone }));
       renderizarFuncionarios();
     }
   } catch (error) {
@@ -92,11 +116,11 @@ function renderizarFuncionarios() {
   if (!sel) return;
   sel.innerHTML = `\
     <option value="">— Selecionar profissional —</option>\
-    ${FUNCIONARIOS.map(f => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.nome)}</option>`).join('')}\
+    ${funcionarios.map(f => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.nome)}</option>`).join('')}\
   `;
 }
 
-let HORARIOS = [];
+let horarios = [];
 
 // Campos exibidos no resumo final.
 const RESUMO = [
@@ -112,12 +136,10 @@ const RESUMO = [
 
 // Cache dos elementos usados com mais frequência na tela.
 const dom = {
-  form: null,
   tel: null,
   data: null,
   nome: null,
   email: null,
-  obs: null,
   confirmar: null,
   sucesso: null,
   steps: null,
@@ -132,12 +154,6 @@ const dom = {
   totalServicos: null,
   servicosGrid: null,
   horariosGrid: null,
-  resServicos: null,
-  resData: null,
-  resHorario: null,
-  resNome: null,
-  resTelefone: null,
-  resEmail: null,
   resTotal: null,
   funcionario: null,
   resumoCorpo: null,
@@ -233,7 +249,7 @@ function dataValida(valor) {
 function renderizarServicos() {
   if (!dom.servicosGrid) return;
 
-  dom.servicosGrid.innerHTML = SERVICOS.map(
+  dom.servicosGrid.innerHTML = servicosDisponiveis.map(
     servico => `
       <div class="col">
         <button
@@ -259,7 +275,7 @@ function renderizarHorarios() {
 
   const bloquearTodos = bloquearHorariosPorData(dom.data?.value);
 
-  dom.horariosGrid.innerHTML = HORARIOS.map(
+  dom.horariosGrid.innerHTML = horarios.map(
     horario => `
       <div class="col">
         <button
@@ -403,14 +419,48 @@ function focarPrimeiro(panel) {
   if (primeiro) primeiro.focus();
 }
 
+async function carregarHorarios(data) {
+  horarios = [];
+  estado.horario = null;
+  renderizarHorarios();
+  atualizarFeedbackDataEHorarios();
+
+  if (!data || bloquearHorariosPorData(data)) return;
+
+  try {
+    const funcionarioId = dom.funcionario?.value;
+    const query = new URLSearchParams({ date: data });
+    if (funcionarioId) query.set('employeeId', funcionarioId);
+    const { data: horariosApi } = await requestJson(
+      `/horarios?${query.toString()}`
+    );
+    if (dom.data.value !== data) return;
+
+    horarios = horariosApi
+      .filter(({ slot }) => /^\d{2}:\d{2}$/.test(slot))
+      .map(({ slot, available }) => ({
+        hora: slot,
+        disponivel: available && new Date(`${data}T${slot}:00-03:00`) > new Date(),
+      }));
+    renderizarHorarios();
+
+    if (!horarios.some(horario => horario.disponivel)) {
+      setTexto(dom.horarioErr, 'Não há horários disponíveis para essa data.');
+      setVisibilidade(dom.horarioErr, true);
+    }
+  } catch (error) {
+    if (dom.data.value !== data) return;
+    setTexto(dom.horarioErr, error.message);
+    setVisibilidade(dom.horarioErr, true);
+  }
+}
+
 // Inicialização geral da tela.
 document.addEventListener('DOMContentLoaded', () => {
-  dom.form = document.getElementById('agendamento-form');
   dom.tel = document.getElementById('telefone');
   dom.data = document.getElementById('data');
   dom.nome = document.getElementById('nome');
   dom.email = document.getElementById('email');
-  dom.obs = document.getElementById('obs');
   dom.confirmar = document.getElementById('btn-confirmar');
   dom.sucesso = document.getElementById('sucesso');
   dom.steps = document.querySelector('.steps');
@@ -425,12 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
   dom.totalServicos = document.getElementById('total-servicos');
   dom.servicosGrid = document.getElementById('servicos-grid');
   dom.horariosGrid = document.getElementById('horarios-grid');
-  dom.resServicos = document.getElementById('res-servicos');
-  dom.resData = document.getElementById('res-data');
-  dom.resHorario = document.getElementById('res-horario');
-  dom.resNome = document.getElementById('res-nome');
-  dom.resTelefone = document.getElementById('res-telefone');
-  dom.resEmail = document.getElementById('res-email');
   dom.resTotal = document.getElementById('res-total');
   dom.sucNome = document.getElementById('suc-nome');
   dom.resumoCorpo = document.getElementById('resumo-corpo');
@@ -450,48 +494,13 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarResumo();
   void carregarFuncionariosDaApi();
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const hojeStr = hoje.toISOString().split('T')[0];
-  const dataMaxima = new Date(hoje);
-  dataMaxima.setDate(dataMaxima.getDate() + DIAS_LIMITE_SEM_HORARIOS);
-  const dataMaximaStr = dataMaxima.toISOString().split('T')[0];
+  const limitesData = obterLimitesDeData();
 
   // Configura a janela permitida no próprio input para reforçar a validação.
   if (dom.data) {
-    dom.data.min = hojeStr;
-    dom.data.max = dataMaximaStr;
-
-    dom.data.addEventListener('change', async () => {
-      const date = dom.data.value;
-      HORARIOS = [];
-      estado.horario = null;
-      renderizarHorarios();
-      atualizarFeedbackDataEHorarios();
-      if (!date || bloquearHorariosPorData(date)) return;
-      try {
-        const response = await fetch(`${API_BASE}/horarios?date=${encodeURIComponent(date)}`);
-        if (!response.ok) throw new Error('Falha ao consultar horários.');
-        const { data } = await response.json();
-        if (dom.data.value !== date) return;
-        HORARIOS = data.filter(({ slot }) => /^\d{2}:\d{2}$/.test(slot)).map(
-          ({ slot, available }) => ({
-            hora: slot,
-            disponivel: available && new Date(`${date}T${slot}:00-03:00`) > new Date(),
-          }),
-        );
-        renderizarHorarios();
-        if (!HORARIOS.some(slot => slot.disponivel)) {
-          setTexto(dom.horarioErr, 'Não há horários disponíveis para essa data.');
-          setVisibilidade(dom.horarioErr, true);
-        }
-      } catch (error) {
-        if (dom.data.value !== date) return;
-        setTexto(dom.horarioErr, error.message);
-        setVisibilidade(dom.horarioErr, true);
-      }
-    });
+    dom.data.min = limitesData.minimo;
+    dom.data.max = limitesData.maximo;
+    dom.data.addEventListener('change', () => void carregarHorarios(dom.data.value));
   }
 
   if (dom.funcionario) {
@@ -500,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const nome = sel.options[sel.selectedIndex]?.text || '';
       estado.funcionario = sel.value ? nome : null;
       atualizarResumo();
+      void carregarHorarios(dom.data?.value);
     });
   }
 
@@ -521,7 +531,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ['nome', dom.nome, dom.nomeErr],
     ['telefone', dom.tel, dom.telErr],
     ['email', dom.email, dom.emailErr],
-    ['obs', dom.obs, null],
     ['data', dom.data, dom.dataErr],
   ].forEach(([id, inputEl, errorEl]) => {
     if (!inputEl) return;
@@ -710,71 +719,93 @@ function irParaStep(step) {
 // Confirmação final - POST para /api/agendamentos
 let bookingAttempt;
 
-async function confirmarAgendamento() {
-  if (dom.confirmar.disabled) return;
+function obterDadosDoAgendamento() {
   const nome = dom.nome.value.trim();
   const digits = dom.tel.value.replace(/\D/g, '');
-  const telefone = digits.length === 11 ? '55' + digits : digits;
-  const email = dom.email.value.trim() || null;
-  const dataStr = dom.data.value;
-  const horaStr = estado.horario;
+  const telefone = digits.length === 11 ? `55${digits}` : digits;
+  const data = dom.data.value;
+  const horario = estado.horario;
   const funcionarioId = dom.funcionario?.value;
 
-  // Validações finais
-  if (nome.length < 3 || !/^55\d{11}$/.test(telefone) || !estado.servicos.length || !dataStr || !horaStr || !funcionarioId) {
+  return {
+    nome,
+    telefone,
+    data,
+    horario,
+    funcionarioId,
+    email: dom.email.value.trim() || null,
+  };
+}
+
+function criarPayloadAgendamento(dados) {
+  return {
+    nomeCliente: dados.nome,
+    telefoneCliente: dados.telefone,
+    emailCliente: dados.email,
+    dataAgendamento: new Date(`${dados.data}T${dados.horario}:00-03:00`).toISOString(),
+    idFuncionario: dados.funcionarioId,
+    idServicos: estado.servicos.map(servico => servico.id).sort(),
+  };
+}
+
+function obterTentativaDeAgendamento(payload) {
+  const body = JSON.stringify(payload);
+  if (bookingAttempt?.body === body) return bookingAttempt;
+
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const nonce = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  bookingAttempt = { body, nonce };
+  return bookingAttempt;
+}
+
+function mostrarSucesso(nome) {
+  dom.panels.forEach(panel => panel.classList.remove('active'));
+  setVisibilidade(dom.steps, false);
+  setVisibilidade(dom.stepTitle, false);
+  setVisibilidade(dom.stepTag, false);
+  setTexto(dom.sucNome, nome);
+  dom.sucesso.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function confirmarAgendamento() {
+  if (dom.confirmar.disabled) return;
+  const dados = obterDadosDoAgendamento();
+
+  if (
+    dados.nome.length < 3 ||
+    !/^55\d{11}$/.test(dados.telefone) ||
+    !estado.servicos.length ||
+    !dados.data ||
+    !dados.horario ||
+    !dados.funcionarioId
+  ) {
     alert('Preencha todos os campos obrigatórios.');
     return;
   }
 
-  // Montar payload para POST /api/agendamentos
-  const payload = {
-    nomeCliente: nome,
-    telefoneCliente: telefone,
-    emailCliente: email,
-    dataAgendamento: new Date(`${dataStr}T${horaStr}:00-03:00`).toISOString(),
-    idFuncionario: funcionarioId,
-    idServicos: estado.servicos.map(s => s.id).sort()
-  };
-
+  const payload = criarPayloadAgendamento(dados);
+  const tentativa = obterTentativaDeAgendamento(payload);
   dom.confirmar.disabled = true;
   try {
-    const body = JSON.stringify(payload);
-    if (bookingAttempt?.body !== body) {
-      const bytes = crypto.getRandomValues(new Uint8Array(16));
-      const nonce = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-      bookingAttempt = { body, nonce };
-    }
-    const res = await fetch(`${API_BASE}/agendamentos`, {
+    const response = await requestJson('/agendamentos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Nonce: bookingAttempt.nonce,
+        Nonce: tentativa.nonce,
       },
-      body
+      body: tentativa.body,
     });
 
-    if (!res.ok) {
-      if (res.status < 500 && ![408, 429].includes(res.status)) bookingAttempt = undefined;
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error?.error?.message || `Erro ao agendar (${res.status})`);
-    }
-
-    const response = await res.json();
     if (response?.data) {
-      // Sucesso!
-      dom.panels.forEach(p => p.classList.remove('active'));
-      setVisibilidade(dom.steps, false);
-      setVisibilidade(dom.stepTitle, false);
-      setVisibilidade(dom.stepTag, false);
-
-      setTexto(dom.sucNome, nome);
-      dom.sucesso.classList.add('active');
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      mostrarSucesso(dados.nome);
     } else {
       throw new Error('Resposta inválida do servidor');
     }
   } catch (err) {
+    if (err.status < 500 && ![408, 429].includes(err.status)) {
+      bookingAttempt = undefined;
+    }
     console.error('Erro ao confirmar agendamento:', err);
     alert(`Erro ao agendar: ${err.message}`);
   } finally {

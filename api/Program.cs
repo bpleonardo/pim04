@@ -1,9 +1,17 @@
 using System.Text;
+
 using api.Data;
+using api.Repositories;
+using api.Services;
+using api.Utilities;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+
 using StackExchange.Redis;
+
 using static api.Utilities.Functions;
 
 namespace api
@@ -36,22 +44,22 @@ namespace api
                 return ConnectionMultiplexer.Connect(GetRedisConnectionString(builder));
             });
 
-            builder.Services.AddScoped<Repositories.ServicosRepository>();
-            builder.Services.AddScoped<Services.ServicosService>();
+            builder.Services.AddScoped<ServicosRepository>();
+            builder.Services.AddScoped<ServicosService>();
 
-            builder.Services.AddScoped<Repositories.ClientesRepository>();
+            builder.Services.AddScoped<ClientesRepository>();
 
-            builder.Services.AddScoped<Repositories.HorariosRepository>();
-            builder.Services.AddScoped<Services.HorariosService>();
+            builder.Services.AddScoped<HorariosRepository>();
+            builder.Services.AddScoped<HorariosService>();
 
-            builder.Services.AddScoped<Repositories.AgendamentosRepository>();
-            builder.Services.AddScoped<Services.AgendamentosService>();
+            builder.Services.AddScoped<AgendamentosRepository>();
+            builder.Services.AddScoped<AgendamentosService>();
 
-            builder.Services.AddScoped<Repositories.UsuariosRepository>();
-            builder.Services.AddScoped<Services.AuthService>();
+            builder.Services.AddScoped<UsuariosRepository>();
+            builder.Services.AddScoped<AuthService>();
 
-            builder.Services.AddScoped<Repositories.FuncionariosRepository>();
-            builder.Services.AddScoped<Services.FuncionariosService>();
+            builder.Services.AddScoped<FuncionariosRepository>();
+            builder.Services.AddScoped<FuncionariosService>();
 
 
             // O Flutter Web usa uma porta local variável durante o desenvolvimento.
@@ -107,7 +115,7 @@ namespace api
                     };
                 });
             builder.Services.AddAuthorization();
-            builder.Services.AddExceptionHandler<Utilities.GlobalExceptionHandler>();
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
 
             builder
@@ -127,11 +135,11 @@ namespace api
                                 ? string.Join("; ", errors)
                                 : "Dados de requisição inválidos.";
 
-                        var errorResponse = new Utilities.ErrorResponse(
+                        var errorResponse = new ErrorResponse(
                             "VALIDATION_ERROR",
                             message
                         );
-                        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(errorResponse);
+                        return new BadRequestObjectResult(errorResponse);
                     };
                 });
 
@@ -172,7 +180,7 @@ namespace api
                     && !context.Request.Path.StartsWithSegments("/api/login", StringComparison.OrdinalIgnoreCase),
                 appBuilder =>
                 {
-                    appBuilder.UseMiddleware<Utilities.NonceMiddleware>();
+                    appBuilder.UseMiddleware<NonceMiddleware>();
                 }
             );
 

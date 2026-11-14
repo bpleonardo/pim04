@@ -14,6 +14,8 @@ namespace api.Data
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<Servico> Servicos => Set<Servico>();
         public DbSet<Agendamento> Agendamentos => Set<Agendamento>();
+        public DbSet<FuncionarioDisponibilidade> FuncionarioDisponibilidades =>
+            Set<FuncionarioDisponibilidade>();
         public DbSet<ServicoRealizado> ServicosRealizados => Set<ServicoRealizado>();
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace api.DTOs
 {
@@ -20,15 +21,19 @@ namespace api.DTOs
         public string Login { get; init; }
     }
 
-    public record RefreshRequest(
-        [property: Required, System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
-        string RefreshToken);
+    public readonly struct RefreshRequest
+    {
+        [Required(ErrorMessage = "{0} é obrigatória!")]
+        [JsonPropertyName("refresh_token")]
+        public string RefreshToken { get; init; }
+    }
 
     public readonly struct LoginResponse
     {
-        [System.Text.Json.Serialization.JsonPropertyName("access_token")]
+        [JsonPropertyName("access_token")]
         public string Token { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
+
+        [JsonPropertyName("refresh_token")]
         public string RefreshToken { get; init; }
         public AuthUser User { get; init; }
     }

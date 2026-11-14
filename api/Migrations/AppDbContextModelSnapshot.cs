@@ -111,8 +111,10 @@ namespace api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Endereco")
-                        .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -287,9 +289,35 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Models.Funcionario", b =>
                 {
+                    b.Navigation("Disponibilidades");
                     b.Navigation("Agendamentos");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("api.Models.FuncionarioDisponibilidade", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DiaSemana")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("Fim")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<Guid>("IdFuncionario")
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeOnly>("Inicio")
+                        .HasColumnType("time without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdFuncionario", "DiaSemana");
+
+                    b.ToTable("FuncionarioDisponibilidades");
                 });
 
             modelBuilder.Entity("api.Models.Servico", b =>

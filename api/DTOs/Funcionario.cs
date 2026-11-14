@@ -8,21 +8,30 @@ namespace api.DTOs
         public string Nome { get; init; } = nome;
     }
 
+    public readonly struct FuncionarioPublicoDTO(Guid id, string nome, bool isDeleted = false)
+    {
+        public Guid Id { get; init; } = id;
+        public string Nome { get; init; } = nome;
+        public bool IsDeleted { get; init; } = isDeleted;
+    }
+
     public struct FuncionarioDTO(
         Guid id,
         string nome,
         string telefone,
         string? cpf,
         string? email,
-        string endereco
+        string? endereco,
+        bool isDeleted = false
     )
     {
         public Guid Id { get; init; } = id;
         public string Nome { get; set; } = nome;
-        public string Telefone { get; set; } = telefone;
+        public string? Telefone { get; set; } = telefone;
         public string? CPF { get; set; } = cpf;
         public string? Email { get; set; } = email;
-        public string Endereco { get; set; } = endereco;
+        public string? Endereco { get; set; } = endereco;
+        public bool IsDeleted { get; init; } = isDeleted;
     }
 
     public struct FuncionarioCreateDTO(
