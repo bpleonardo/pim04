@@ -428,8 +428,11 @@ async function carregarHorarios(data) {
   if (!data || bloquearHorariosPorData(data)) return;
 
   try {
+    const funcionarioId = dom.funcionario?.value;
+    const query = new URLSearchParams({ date: data });
+    if (funcionarioId) query.set('employeeId', funcionarioId);
     const { data: horariosApi } = await requestJson(
-      `/horarios?date=${encodeURIComponent(data)}`
+      `/horarios?${query.toString()}`
     );
     if (dom.data.value !== data) return;
 
@@ -506,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const nome = sel.options[sel.selectedIndex]?.text || '';
       estado.funcionario = sel.value ? nome : null;
       atualizarResumo();
+      void carregarHorarios(dom.data?.value);
     });
   }
 

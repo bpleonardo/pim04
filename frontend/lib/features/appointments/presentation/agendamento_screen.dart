@@ -103,6 +103,7 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
       slot = originalSlot;
       return;
     }
+    api.selectedEmployeeId = employeeId;
     timeSlots =
         await (offlineRepo?.slots(selectedDate) ?? api.timeSlots(selectedDate));
     slot = originalSlot;
@@ -361,7 +362,14 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                         ],
                         onChanged: widget.forCurrentEmployee || busy
                             ? null
-                            : (v) => setState(() => employeeId = v)),
+                            : (v) async {
+                                setState(() {
+                                  employeeId = v;
+                                  slot = null;
+                                  timeSlots = [];
+                                });
+                                await loadTimeSlots();
+                              }),
                     const SizedBox(height: 16),
                     ListTile(
                         title: Text(

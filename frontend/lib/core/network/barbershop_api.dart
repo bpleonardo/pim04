@@ -5,6 +5,7 @@ import 'package:barbearia_frontend/core/network/api_client.dart';
 
 class BarbershopApi {
   final ApiClient _client = ApiClient();
+  String? selectedEmployeeId;
   Future<Map<String, dynamic>> login(String login, String password) async =>
       Map<String, dynamic>.from(await _client.request('POST', '/api/Login',
           body: {'login': login, 'senha': password}));
@@ -37,6 +38,34 @@ class BarbershopApi {
       (await _client.request('GET', '/api/Funcionarios') as List)
           .map((x) => Employee.fromJson(Map<String, dynamic>.from(x)))
           .toList();
+
+  Future<List<Map<String, dynamic>>> availableSlots(
+    DateTime date, {
+    String? employeeId,
+  }) async {
+    final dateValue =
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final query = Uri(queryParameters: {
+      'date': dateValue,
+      if (employeeId != null) 'employeeId': employeeId,
+    }).query;
+    return (await _client.request('GET', '/api/Horarios?$query') as List)
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> myAvailability() async =>
+      Map<String, dynamic>.from(
+          await _client.request('GET', '/api/Horarios/me'));
+
+  Future<void> saveAvailability(Map<String, dynamic> availability) async {
+    await _client.request(
+      'PUT',
+      '/api/Horarios/me',
+      body: availability,
+    );
+  }
+
   Future<void> saveEmployee(Employee employee, {required bool creating}) async {
     await _client.request(
       creating ? 'POST' : 'PUT',
@@ -58,7 +87,11 @@ class BarbershopApi {
   Future<List<Map<String, dynamic>>> timeSlots(DateTime selectedDate) async {
     final date =
         '${selectedDate.year.toString().padLeft(4, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
-    return (await _client.request('GET', '/api/Horarios?date=$date') as List)
+    final query = Uri(queryParameters: {
+      'date': date,
+      if (selectedEmployeeId != null) 'employeeId': selectedEmployeeId!,
+    }).query;
+    return (await _client.request('GET', '/api/Horarios?$query') as List)
         .map((x) => Map<String, dynamic>.from(x))
         .toList();
   }

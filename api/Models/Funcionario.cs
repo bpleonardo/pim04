@@ -21,6 +21,7 @@ namespace api.Models
 
         // Navegação para a lista de agendamentos atribuídos ao funcionário
         public ICollection<Agendamento> Agendamentos { get; set; } = [];
+        public ICollection<FuncionarioDisponibilidade> Disponibilidades { get; set; } = [];
 
         public Funcionario(
             Guid? id,
