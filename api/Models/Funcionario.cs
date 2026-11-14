@@ -12,7 +12,9 @@ namespace api.Models
     {
         [Required]
         [MinLength(5)]
-        public string Endereco { get; set; } = string.Empty;
+        public string? Endereco { get; set; }
+
+        public bool IsDeleted { get; set; }
 
         // Navegação 1:1 para a conta de usuário
         public Usuario? Usuario { get; set; }

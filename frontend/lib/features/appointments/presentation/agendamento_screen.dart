@@ -350,7 +350,14 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                             const InputDecoration(labelText: 'Barbeiro'),
                         items: [
                           for (final x in employees)
-                            DropdownMenuItem(value: x.id, child: Text(x.name))
+                            DropdownMenuItem(
+                              value: x.id,
+                              enabled: !x.isDeleted ||
+                                  widget.appointment?.employeeId == x.id,
+                              child: Text(
+                                x.isDeleted ? '${x.name} (Excluído)' : x.name,
+                              ),
+                            )
                         ],
                         onChanged: widget.forCurrentEmployee || busy
                             ? null

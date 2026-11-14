@@ -37,6 +37,24 @@ class BarbershopApi {
       (await _client.request('GET', '/api/Funcionarios') as List)
           .map((x) => Employee.fromJson(Map<String, dynamic>.from(x)))
           .toList();
+  Future<void> saveEmployee(Employee employee, {required bool creating}) async {
+    await _client.request(
+      creating ? 'POST' : 'PUT',
+      creating ? '/api/funcionarios' : '/api/funcionarios/${employee.id}',
+      body: {
+        'nome': employee.name,
+        'telefone': employee.phone,
+        'cpf': employee.cpf,
+        'email': employee.email,
+        'endereco': employee.address,
+      },
+    );
+  }
+
+  Future<void> deleteEmployee(String id) async {
+    await _client.request('DELETE', '/api/funcionarios/$id');
+  }
+
   Future<List<Map<String, dynamic>>> timeSlots(DateTime selectedDate) async {
     final date =
         '${selectedDate.year.toString().padLeft(4, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';

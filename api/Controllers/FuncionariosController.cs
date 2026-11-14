@@ -1,6 +1,7 @@
 using api.DTOs;
 using api.Services;
 using api.Utilities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
@@ -20,6 +21,30 @@ namespace api.Controllers
                 ? await _service.GetAll()
                 : await _service.GetPublic();
             return Ok(ApiResponse.Ok(funcionarios));
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<ActionResult> Post([FromBody] FuncionarioCreateDTO dto)
+        {
+            await _service.CreateOne(dto);
+            return NoContent();
+        }
+
+        [Authorize]
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult> Put(Guid id, [FromBody] FuncionarioCreateDTO dto)
+        {
+            await _service.UpdateOne(id, dto);
+            return NoContent();
+        }
+
+        [Authorize]
+        [HttpDelete("{id:guid}")]
+        public async Task<ActionResult> Delete(Guid id)
+        {
+            var isDeleted = await _service.DeleteOne(id);
+            return Ok(ApiResponse.Ok(new { isDeleted }));
         }
     }
 }

@@ -111,8 +111,10 @@ namespace api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Endereco")
-                        .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nome")
                         .IsRequired()
