@@ -1,11 +1,16 @@
-namespace api.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public class RefreshSession
+namespace api.Models
 {
-    [System.ComponentModel.DataAnnotations.Key]
-    public Guid Jti { get; init; }
-    public Guid EmployeeId { get; init; }
-    [System.ComponentModel.DataAnnotations.Schema.ForeignKey(nameof(EmployeeId))]
-    public Usuario User { get; init; } = null!;
-    public DateTime ExpiresAt { get; init; }
+    public class RefreshSession
+    {
+        [Key]
+        public Guid Jti { get; init; }
+        public Guid EmployeeId { get; init; }
+
+        [ForeignKey(nameof(EmployeeId))]
+        public Usuario User { get; init; } = null!;
+        public DateTime ExpiresAt { get; init; }
+    }
 }

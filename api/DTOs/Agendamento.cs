@@ -45,8 +45,6 @@ namespace api.DTOs
         [EmailAddress]
         public string? EmailCliente { get; set; }
 
-        public string? ObservacoesCliente { get; set; }
-
         [Required]
         public Guid IdFuncionario { get; set; }
 
@@ -61,8 +59,6 @@ namespace api.DTOs
     public struct AgendamentoEditDTO
     {
         public AgendamentoCreateDTO Booking { get; set; }
-        [Range(0, long.MaxValue)]
-        public long ExpectedRevision { get; set; }
     }
 
     public struct AgendamentoUpdateDTO

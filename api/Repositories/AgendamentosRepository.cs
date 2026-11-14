@@ -80,7 +80,6 @@ namespace api.Repositories
             Guid clientId,
             Guid employeeId,
             DateTime scheduledAt,
-            double total,
             Guid[] serviceIds,
             string? clientRequestId = null,
             string? requestHash = null
@@ -180,35 +179,40 @@ namespace api.Repositories
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
             await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({employeeId.ToString()}, 0))");
-            await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"Agendamentos\" WHERE \"Id\" = {id} FOR UPDATE");
             var appointment = await _context.Agendamentos.Include(a => a.Cliente)
                 .Include(a => a.ServicosRealizados)
                 .SingleOrDefaultAsync(a => a.Id == id && a.IdFuncionario == employeeId)
                 ?? throw new ResourceNotFoundException("Agendamento não encontrado.");
             if (mutationId is not null && appointment.LastMutationId == mutationId) return;
-            if (appointment.Revision != dto.ExpectedRevision)
-                throw new ConflictException("O agendamento foi alterado no servidor. Confira os dados atuais antes de reaplicar sua edição.");
-            if (appointment.Status != "agendado")
-                throw new ConflictException("Somente agendamentos pendentes podem ser editados.");
+
             var booking = dto.Booking;
             var scheduled = booking.DataAgendamento.Kind == DateTimeKind.Unspecified
                 ? DateTime.SpecifyKind(booking.DataAgendamento, DateTimeKind.Utc) : booking.DataAgendamento.ToUniversalTime();
             if (booking.IdFuncionario != employeeId)
                 throw new ConflictException("Não é permitido transferir o agendamento para outro funcionário.");
-            if (scheduled != appointment.DataAgendamento && scheduled <= api.Services.AgendamentosService.BookingReferenceTime(booking))
+            if (scheduled <= api.Services.AgendamentosService.BookingReferenceTime(booking))
                 throw new ValidationException("Escolha um horário futuro para o agendamento.");
-            if (await _context.Agendamentos.AnyAsync(a => a.Id != id && a.IdFuncionario == employeeId && a.DataAgendamento == scheduled && a.Status == "agendado"))
+            if (await _context.Agendamentos.AnyAsync(a =>
+                a.Id != id
+                && a.IdFuncionario == employeeId
+                && a.DataAgendamento == scheduled
+                && a.Status == "agendado"))
                 throw new ConflictException("Horário indisponível para o funcionário informado.");
+
             var ids = (booking.IdServicos ?? []).Distinct().ToArray();
             var services = await _context.Servicos.FromSql($"SELECT * FROM \"Servicos\" WHERE \"Id\" = ANY ({ids}) ORDER BY \"Id\" FOR SHARE").AsNoTracking().ToListAsync();
-            if (ids.Length == 0 || services.Count != ids.Length || services.Any(s => !s.Ativo))
-                throw new ConflictException("Selecione serviços existentes e ativos.");
+            if (ids.Length == 0)
+                throw new ValidationException("Selecione pelo menos um serviço.");
+            if (services.Count != ids.Length)
+                throw new ResourceNotFoundException("Um ou mais serviços informados não foram encontrados.");
+            if (services.Any(s => !s.Ativo))
+                throw new ConflictException("Um dos serviços selecionados está desabilitado.");
+
             appointment.Cliente.Nome = booking.NomeCliente;
             appointment.Cliente.Telefone = booking.TelefoneCliente;
             appointment.DataAgendamento = scheduled;
             appointment.ValorTotal = services.Sum(s => s.Preco);
             _context.ServicosRealizados.RemoveRange(appointment.ServicosRealizados);
-            await _context.SaveChangesAsync();
             appointment.ServicosRealizados.Clear();
             foreach (var service in services)
                 appointment.ServicosRealizados.Add(new ServicoRealizado { IdAgendamento = id, IdServico = service.Id, Valor = service.Preco });

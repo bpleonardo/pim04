@@ -117,7 +117,6 @@ const dom = {
   data: null,
   nome: null,
   email: null,
-  obs: null,
   confirmar: null,
   sucesso: null,
   steps: null,
@@ -410,7 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
   dom.data = document.getElementById('data');
   dom.nome = document.getElementById('nome');
   dom.email = document.getElementById('email');
-  dom.obs = document.getElementById('obs');
   dom.confirmar = document.getElementById('btn-confirmar');
   dom.sucesso = document.getElementById('sucesso');
   dom.steps = document.querySelector('.steps');
@@ -521,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ['nome', dom.nome, dom.nomeErr],
     ['telefone', dom.tel, dom.telErr],
     ['email', dom.email, dom.emailErr],
-    ['obs', dom.obs, null],
     ['data', dom.data, dom.dataErr],
   ].forEach(([id, inputEl, errorEl]) => {
     if (!inputEl) return;
