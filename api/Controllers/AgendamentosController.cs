@@ -11,6 +11,12 @@ namespace api.Controllers
     [ApiController]
     public class AgendamentosController(AgendamentosService service) : ControllerBase
     {
+        private string? MutationId()
+        {
+            var nonce = Request.Headers["Nonce"].ToString();
+            return nonce.Length == 32 && nonce.All(Uri.IsHexDigit) ? nonce : null;
+        }
+
         private readonly AgendamentosService _service = service;
 
         [HttpGet]
@@ -30,6 +36,22 @@ namespace api.Controllers
             return Ok(ApiResponse.Ok(await _service.GetAll(date, employeeId)));
         }
 
+        [Authorize]
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult> GetOne(Guid id)
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId)) return Unauthorized();
+            return Ok(ApiResponse.Ok(await _service.GetOne(id, employeeId)));
+        }
+
+        [Authorize]
+        [HttpPut("{id:guid}")]
+        public async Task<ActionResult> Put(Guid id, [FromBody] AgendamentoEditDTO dto)
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId)) return Unauthorized();
+            return Ok(ApiResponse.Ok(await _service.Edit(id, employeeId, dto, MutationId())));
+        }
+
         // POST: /api/agendamentos
         [HttpPost]
         [ProducesResponseType(
@@ -43,6 +65,9 @@ namespace api.Controllers
             [FromBody] AgendamentoCreateDTO dto
         )
         {
+            if (dto.RecordedAt.HasValue &&
+                (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId) || employeeId != dto.IdFuncionario || dto.ClientRequestId is null))
+                return Unauthorized();
             var result = await _service.CreateOne(dto);
             return StatusCode(StatusCodes.Status201Created, ApiResponse.Ok(result));
         }
@@ -50,7 +75,7 @@ namespace api.Controllers
         // PATCH: /api/agendamentos/{id}
         [Authorize]
         [HttpPatch("{id:guid}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiResponse<MinAgendamentoDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult> Patch(Guid id, [FromBody] AgendamentoUpdateDTO dto)
@@ -58,8 +83,8 @@ namespace api.Controllers
             if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var employeeId))
                 return Unauthorized();
 
-            await _service.UpdateStatus(id, dto.Status, employeeId);
-            return NoContent();
+            await _service.UpdateStatus(id, dto.Status, employeeId, dto.ExpectedRevision, MutationId());
+            return Ok(ApiResponse.Ok(await _service.GetOne(id, employeeId)));
         }
     }
 }

@@ -8,11 +8,20 @@ namespace api.Models
     /// <summary>
     /// Represents an appointment entity in the database.
     /// </summary>
+    [Index(nameof(ClientRequestId), IsUnique = true)]
     public class Agendamento
     {
         [Key]
         [Guid]
         public Guid Id { get; init; }
+
+        [MaxLength(32)]
+        public string? ClientRequestId { get; set; }
+        [MaxLength(32)]
+        public string? LastMutationId { get; set; }
+        public string? RequestHash { get; set; }
+        [ConcurrencyCheck]
+        public long Revision { get; set; }
 
         [Required]
         [Guid]

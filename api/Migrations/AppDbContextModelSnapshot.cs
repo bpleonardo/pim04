@@ -28,6 +28,11 @@ namespace api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ClientRequestId").HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("LastMutationId").HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("RequestHash").HasColumnType("text");
+                    b.Property<long>("Revision").IsConcurrencyToken().HasColumnType("bigint");
+
                     b.Property<DateTime>("DataAgendamento")
                         .HasColumnType("timestamp with time zone");
 
@@ -50,6 +55,8 @@ namespace api.Migrations
                         .HasColumnType("double precision");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientRequestId").IsUnique();
 
                     b.HasIndex("IdCliente");
 
