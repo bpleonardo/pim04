@@ -2,6 +2,8 @@ using api.Data;
 using api.DTOs;
 using api.Exceptions;
 using api.Models;
+using api.Services;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -186,11 +188,10 @@ namespace api.Repositories
             if (mutationId is not null && appointment.LastMutationId == mutationId) return;
 
             var booking = dto.Booking;
-            var scheduled = booking.DataAgendamento.Kind == DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(booking.DataAgendamento, DateTimeKind.Utc) : booking.DataAgendamento.ToUniversalTime();
+            var scheduled = ToUtc(booking.DataAgendamento);
             if (booking.IdFuncionario != employeeId)
                 throw new ConflictException("Não é permitido transferir o agendamento para outro funcionário.");
-            if (scheduled <= api.Services.AgendamentosService.BookingReferenceTime(booking))
+            if (scheduled <= AgendamentosService.BookingReferenceTime(booking))
                 throw new ValidationException("Escolha um horário futuro para o agendamento.");
             if (await _context.Agendamentos.AnyAsync(a =>
                 a.Id != id
@@ -221,6 +222,11 @@ namespace api.Repositories
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }
+
+        private static DateTime ToUtc(DateTime value) =>
+            value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+                : value.ToUniversalTime();
 
         /// <summary>
         /// Retrieves a single appointment by identifier with all details, or null if not found.

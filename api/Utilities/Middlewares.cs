@@ -1,12 +1,13 @@
 using System.Text.Json;
+
 using StackExchange.Redis;
 
 namespace api.Utilities
 {
     public class NonceMiddleware(RequestDelegate next, ConnectionMultiplexer redis)
     {
-        private static readonly string[] ALLOWED_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
-        private static readonly string[] EXCLUDED_HEADERS =
+        private static readonly string[] AllowedMethods = ["POST", "PUT", "PATCH", "DELETE"];
+        private static readonly string[] ExcludedHeaders =
         [
             "Content-Type",
             "Server",
@@ -43,7 +44,7 @@ namespace api.Utilities
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (ALLOWED_METHODS.Contains(context.Request.Method))
+            if (AllowedMethods.Contains(context.Request.Method))
             {
                 var headerNonce = context.Request.Headers["Nonce"].ToString();
 
@@ -63,7 +64,7 @@ namespace api.Utilities
 
                     foreach (var header in cachedResponse.Headers)
                     {
-                        if (!EXCLUDED_HEADERS.Contains(header.Key))
+                        if (!ExcludedHeaders.Contains(header.Key))
                         {
                             context.Response.Headers[header.Key] = header.Value;
                         }
@@ -104,7 +105,7 @@ namespace api.Utilities
 
                             foreach (var header in context.Response.Headers)
                             {
-                                if (!EXCLUDED_HEADERS.Contains(header.Key) && header.Value.Count > 0)
+                                if (!ExcludedHeaders.Contains(header.Key) && header.Value.Count > 0)
                                 {
                                     response.Headers[header.Key] = header.Value!;
                                 }

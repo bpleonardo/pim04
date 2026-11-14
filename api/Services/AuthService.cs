@@ -1,13 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using api.DTOs;
-using api.Data;
-using api.Models;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+
+using api.Data;
+using api.DTOs;
 using api.Exceptions;
+using api.Models;
 using api.Repositories;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace api.Services
@@ -58,8 +60,8 @@ namespace api.Services
 
         private string Issuer => _config["Jwt:Issuer"] ?? "api";
 
-        private SymmetricSecurityKey RefreshKey => new(HMACSHA256.HashData(
-            signingKey.Key, Encoding.UTF8.GetBytes("barbershop-refresh-token")));
+        private SymmetricSecurityKey RefreshKey =>
+            new(HMACSHA256.HashData(signingKey.Key, Encoding.UTF8.GetBytes("barbershop-refresh-token")));
 
         private static UnauthorizedException InvalidRefresh() =>
             new("Sessão expirada. Entre novamente.", "INVALID_REFRESH_TOKEN");

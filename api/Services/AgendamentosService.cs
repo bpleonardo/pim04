@@ -1,3 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
 using api.DTOs;
 using api.Exceptions;
 using api.Models;
@@ -33,13 +37,7 @@ namespace api.Services
         /// </summary>
         public async Task<AgendamentoResponseDTO> CreateOne(AgendamentoCreateDTO dto)
         {
-            var requestHash = Convert.ToHexString(
-                System.Security.Cryptography.SHA256.HashData(
-                    System.Text.Encoding.UTF8.GetBytes(
-                        System.Text.Json.JsonSerializer.Serialize(dto)
-                    )
-                )
-            );
+            var requestHash = CreateRequestHash(dto);
             if (
                 dto.ClientRequestId is not null
                 && await _appointments.FindRequest(dto.ClientRequestId) is { } previous
@@ -51,10 +49,7 @@ namespace api.Services
                     );
                 return ToResponse(await GetOne(previous.Id, null));
             }
-            var scheduledAtUtc =
-                dto.DataAgendamento.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(dto.DataAgendamento, DateTimeKind.Utc)
-                    : dto.DataAgendamento.ToUniversalTime();
+            var scheduledAtUtc = ToUtc(dto.DataAgendamento);
             if (scheduledAtUtc <= BookingReferenceTime(dto))
             {
                 throw new ValidationException("Escolha um horário futuro para o agendamento.");
@@ -65,19 +60,44 @@ namespace api.Services
                 || dto.IdServicos.Distinct().Count() != dto.IdServicos.Length
             )
                 throw new ValidationException("Selecione pelo menos um serviço, sem repetições.");
-            // 1. Validate slot availability
-            var isAvailable = await _appointments.IsSlotAvailable(
-                dto.IdFuncionario,
-                scheduledAtUtc
-            );
-            if (!isAvailable)
+            if (!await _appointments.IsSlotAvailable(dto.IdFuncionario, scheduledAtUtc))
             {
                 throw new ConflictException("Horário indisponível para o funcionário informado.");
             }
 
-            // 2. Find or create cliente
-            // 3. Calculate total from services
-            foreach (var serviceId in dto.IdServicos ?? [])
+            await ValidateServices(dto.IdServicos!);
+
+            var client = await CreateClient(dto);
+
+            var appointmentId = await _appointments.CreateOne(
+                client.Id,
+                dto.IdFuncionario,
+                scheduledAtUtc,
+                dto.IdServicos ?? [],
+                dto.ClientRequestId,
+                requestHash
+            );
+
+            var createdAppointment =
+                await _appointments.GetOne(appointmentId)
+                ?? throw new ResourceNotFoundException("Agendamento não encontrado.");
+
+            return ToResponse(createdAppointment);
+        }
+
+        private static string CreateRequestHash(AgendamentoCreateDTO dto) =>
+            Convert.ToHexString(
+                SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(dto)))
+            );
+
+        private static DateTime ToUtc(DateTime value) =>
+            value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+                : value.ToUniversalTime();
+
+        private async Task ValidateServices(Guid[] serviceIds)
+        {
+            foreach (var serviceId in serviceIds)
             {
                 var service =
                     await _services.GetOne(serviceId)
@@ -88,8 +108,11 @@ namespace api.Services
                 if (!service.Ativo)
                     throw new ConflictException($"O serviço '{service.Nome}' está desabilitado.");
             }
+        }
 
-            var newClient = new Cliente(
+        private async Task<Cliente> CreateClient(AgendamentoCreateDTO dto)
+        {
+            var client = new Cliente(
                 null,
                 dto.NomeCliente,
                 dto.TelefoneCliente,
@@ -98,32 +121,9 @@ namespace api.Services
                 null
             );
             await _clients.CreateOne(
-                new ClienteDTO(
-                    newClient.Id,
-                    newClient.Nome,
-                    newClient.Telefone ?? string.Empty,
-                    newClient.CPF,
-                    newClient.Email,
-                    null
-                )
+                new ClienteDTO(client.Id, client.Nome, client.Telefone ?? string.Empty, client.CPF, client.Email, null)
             );
-
-            // 4. Create appointment
-            var appointmentId = await _appointments.CreateOne(
-                newClient.Id,
-                dto.IdFuncionario,
-                scheduledAtUtc,
-                dto.IdServicos ?? [],
-                dto.ClientRequestId,
-                requestHash
-            );
-
-            // 5. Fetch created appointment and return
-            var createdAppointment =
-                await _appointments.GetOne(appointmentId)
-                ?? throw new ResourceNotFoundException("Agendamento não encontrado.");
-
-            return ToResponse(createdAppointment);
+            return client;
         }
 
         public static DateTime BookingReferenceTime(AgendamentoCreateDTO dto)
@@ -131,10 +131,7 @@ namespace api.Services
             var now = DateTime.UtcNow;
             if (dto.RecordedAt is not { } recorded)
                 return now;
-            recorded =
-                recorded.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(recorded, DateTimeKind.Utc)
-                    : recorded.ToUniversalTime();
+            recorded = ToUtc(recorded);
             if (recorded > now.AddMinutes(5) || recorded < now.AddDays(-7))
                 throw new ValidationException(
                     "A data de registro offline deve estar nos últimos sete dias. Confira o relógio do aparelho."
