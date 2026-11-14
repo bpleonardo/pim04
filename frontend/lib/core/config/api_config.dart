@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 import 'package:barbearia_frontend/core/responsive/app_platform.dart';
 import 'package:barbearia_frontend/core/storage/app_database.dart';
@@ -11,9 +12,12 @@ class ApiConfig {
     'API_BASE_URL',
     defaultValue: 'http://localhost:8080',
   );
-  // API request paths already include /api; an empty base keeps them relative
-  // to the current web origin.
-  static const webUrl = '';
+  // No desenvolvimento, o servidor Flutter não encaminha /api para o backend.
+  // Em produção, o Nginx atende /api na mesma origem do painel.
+  static const webUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: kDebugMode ? defaultUrl : '',
+  );
   static String _url = defaultUrl;
 
   static String get baseUrl => AppPlatform.web ? webUrl : _url;
