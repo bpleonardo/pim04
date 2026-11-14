@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:barbearia_frontend/core/storage/app_database.dart';
+import 'package:barbearia_frontend/features/appointments/data/offline_booking_repository.dart';
+import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
 
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
@@ -14,8 +17,16 @@ class AgendamentoScreen extends StatefulWidget {
       {super.key,
       this.api,
       this.embedded = false,
-      this.forCurrentEmployee = false});
+      this.forCurrentEmployee = false,
+      this.appointment,
+      this.conflictEntityId,
+      this.recreate = false,
+      this.offlineRepository});
 
+  final OfflineBookingRepository? offlineRepository;
+  final Appointment? appointment;
+  final String? conflictEntityId;
+  final bool recreate;
   final BarbershopApi? api;
   final bool embedded;
   final bool forCurrentEmployee;
@@ -26,6 +37,10 @@ class AgendamentoScreen extends StatefulWidget {
 
 class _AgendamentoScreenState extends State<AgendamentoScreen> {
   late final api = widget.api ?? BarbershopApi();
+  late final OfflineBookingRepository? offlineRepo = widget.offlineRepository ??
+      (AppDatabase.available && widget.forCurrentEmployee
+          ? OfflineBookingRepository(api: api)
+          : null);
   final form = GlobalKey<FormState>();
   final name = TextEditingController(), phone = TextEditingController();
   late Future<void> loading;
@@ -40,6 +55,14 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   @override
   void initState() {
     super.initState();
+    final existing = widget.appointment;
+    if (existing != null) {
+      name.text = existing.clientName;
+      phone.text = existing.phone;
+      selectedServiceIds.addAll(existing.serviceIds);
+      final day = appointmentShopTime(existing.scheduledAt);
+      if (day != null) selectedDate = day;
+    }
     loading = load();
   }
 
@@ -54,14 +77,44 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
     } else {
       employees = await api.employees();
     }
-    services =
-        (await api.services()).where((service) => service.enabled).toList();
+    services = (await (offlineRepo?.services() ?? api.services()))
+        .where((service) => service.enabled)
+        .toList();
+    selectedServiceIds
+        .removeWhere((id) => !services.any((service) => service.id == id));
     await loadTimeSlots();
   }
 
   Future<void> loadTimeSlots() async {
-    timeSlots = await api.timeSlots(selectedDate);
-    slot = null;
+    final original = widget.appointment == null
+        ? null
+        : appointmentShopTime(widget.appointment!.scheduledAt);
+    final sameDay = original != null &&
+        original.year == selectedDate.year &&
+        original.month == selectedDate.month &&
+        original.day == selectedDate.day;
+    final originalSlot = sameDay ? shopClockLabel(original) : null;
+    if (sameDay &&
+        !shopSlotToUtc(original, original.hour, original.minute)
+            .isAfter(DateTime.now().toUtc())) {
+      timeSlots = [
+        {'slot': originalSlot, 'available': true}
+      ];
+      slot = originalSlot;
+      return;
+    }
+    timeSlots =
+        await (offlineRepo?.slots(selectedDate) ?? api.timeSlots(selectedDate));
+    slot = originalSlot;
+    if (originalSlot != null) {
+      timeSlots = [
+        for (final entry in timeSlots)
+          if (entry['slot'] != slot) entry,
+        {'slot': slot, 'available': true}
+      ];
+      timeSlots
+          .sort((a, b) => a['slot'].toString().compareTo(b['slot'].toString()));
+    }
   }
 
   @override
@@ -103,16 +156,63 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
         _bookingKey = key;
         _bookingNonce = ApiClient.newNonce();
       }
-      await api.createAppointment(
-          name: name.text.trim(),
-          phone: phone.text.trim(),
-          employeeId: employeeId!,
-          scheduledAt: scheduledAt,
-          services: services,
-          nonce: _bookingNonce);
+      final original = widget.appointment;
+      final unchangedTime = original != null &&
+          !widget.recreate &&
+          DateTime.parse(original.scheduledAt).toUtc() == scheduledAt;
+      if (!unchangedTime && !scheduledAt.isAfter(DateTime.now().toUtc())) {
+        throw const ApiException('Escolha um horário futuro.');
+      }
+      final booking = <String, dynamic>{
+        'nomeCliente': name.text.trim(),
+        'telefoneCliente': phone.text.trim(),
+        'idFuncionario': employeeId!,
+        'dataAgendamento': scheduledAt.toIso8601String(),
+        'idServicos': services,
+      };
+      final repository = offlineRepo;
+      var pending = false;
+      if (repository != null) {
+        booking['recordedAt'] = DateTime.now().toUtc().toIso8601String();
+        final existing = widget.appointment;
+        final creating = existing == null || widget.recreate;
+        final id = creating ? 'local:$_bookingNonce' : existing.id;
+        final selected =
+            this.services.where((s) => services.contains(s.id)).toList();
+        final preview = Appointment(
+            id: id,
+            scheduledAt: scheduledAt.toIso8601String(),
+            status: 'agendado',
+            clientName: name.text.trim(),
+            phone: phone.text.trim(),
+            employeeName: ApiClient.user!.name,
+            employeeId: employeeId!,
+            total: selected.fold(0.0, (sum, service) => sum + service.price),
+            services: selected.map((s) => s.name).toList(),
+            serviceIds: services,
+            revision: creating ? 0 : existing.revision + 1);
+        await repository.enqueue(
+            creating ? 'create' : 'edit',
+            preview,
+            creating
+                ? {...booking, 'clientRequestId': _bookingNonce}
+                : {'booking': booking, 'expectedRevision': existing.revision},
+            replacingConflict: widget.conflictEntityId);
+        pending = (await repository.pending()).any((p) => p.entityId == id);
+      } else {
+        await api.createAppointment(
+            name: name.text.trim(),
+            phone: phone.text.trim(),
+            employeeId: employeeId!,
+            scheduledAt: scheduledAt,
+            services: services,
+            nonce: _bookingNonce);
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Agendamento confirmado pela API')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(pending
+                ? 'Salvo no aparelho. Aguarda sincronização; confira possíveis conflitos na agenda.'
+                : 'Agendamento confirmado pela API')));
         if (widget.embedded) {
           DesktopLayout.of(context).open(AppRouter.home);
         } else {
@@ -145,6 +245,11 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    if (offlineRepo?.offline == true)
+                      const Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: Text(
+                              'Sem conexão. Serviços salvos e horários previstos. A API confirmará disponibilidade e preços ao sincronizar.')),
                     TextFormField(
                         controller: name,
                         decoration:
@@ -268,7 +373,10 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   Widget build(BuildContext context) => widget.embedded
       ? buildContent()
       : Scaffold(
-          appBar: AppBar(title: const Text('Novo agendamento')),
+          appBar: AppBar(
+              title: Text(widget.appointment == null
+                  ? 'Novo agendamento'
+                  : 'Editar agendamento')),
           body: buildContent(),
         );
 }

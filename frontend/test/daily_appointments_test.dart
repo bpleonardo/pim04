@@ -42,7 +42,7 @@ class FakeAgendaRepository extends AppointmentRepository {
   Completer<DailyAgenda>? delayedLoad;
   bool failLoad = false;
   bool failCompletion = false;
-  bool offline = false;
+
   bool rejectQueuedCompletion = false;
   String? rejectedId;
   String? queuedId;
@@ -86,6 +86,7 @@ class FakeAgendaRepository extends AppointmentRepository {
 
 void main() {
   setUp(() {
+    ApiClient.connectionUnavailable = false;
     ApiClient.user =
         const User(id: 'ana', name: 'Ana Costa', login: 'ana.costa');
   });
@@ -178,11 +179,7 @@ void main() {
     final context = tester.element(find.byType(SizedBox).first);
     for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
       debugDefaultTargetPlatformOverride = platform;
-      for (final route in [
-        AppRouter.home,
-        AppRouter.agenda,
-        AppRouter.dashboard
-      ]) {
+      for (final route in [AppRouter.home, AppRouter.agenda]) {
         expect(
             (AppRouter.onGenerateRoute(RouteSettings(name: route))
                     as MaterialPageRoute<void>)

@@ -1,5 +1,8 @@
 class Appointment {
   final String id, scheduledAt, status, clientName, employeeName;
+  final String phone;
+  final int revision;
+  final List<String> serviceIds;
   final double total;
   final String employeeId;
   final List<String> services;
@@ -10,10 +13,21 @@ class Appointment {
       required this.clientName,
       required this.employeeName,
       required this.total,
+      this.phone = '',
+      this.revision = 0,
+      this.serviceIds = const [],
       this.employeeId = '',
       this.services = const []});
   factory Appointment.fromJson(Map<String, dynamic> j) => Appointment(
           id: j['id'].toString(),
+          phone: (j['cliente']?['telefone'] ?? j['telefoneCliente'] ?? '')
+              .toString(),
+          revision: (j['revision'] as num?)?.toInt() ?? 0,
+          serviceIds: (j['serviceIds'] as List?)?.cast<String>() ??
+              [
+                for (final s in (j['servicos'] as List? ?? []))
+                  if (s is Map) s['id'].toString()
+              ],
           scheduledAt: j['dataAgendamento'].toString(),
           status: j['status'] as String,
           clientName:
@@ -36,6 +50,9 @@ class Appointment {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'telefoneCliente': phone,
+        'revision': revision,
+        'serviceIds': serviceIds,
         'dataAgendamento': scheduledAt,
         'status': status,
         'nomeCliente': clientName,

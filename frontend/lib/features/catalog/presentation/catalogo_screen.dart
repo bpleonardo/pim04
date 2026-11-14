@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/catalog/data/service_repository.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 
 class CatalogoScreen extends StatefulWidget {
-  const CatalogoScreen({super.key, this.embedded = false});
+  const CatalogoScreen({super.key, this.embedded = false, this.repository});
+
+  final ServiceRepository? repository;
 
   final bool embedded;
 
@@ -12,8 +15,20 @@ class CatalogoScreen extends StatefulWidget {
 }
 
 class _CatalogoScreenState extends State<CatalogoScreen> {
-  final _repository = ServiceRepository();
-  late var _services = _repository.list();
+  late final _repository = widget.repository ?? ServiceRepository();
+  late var _services = _load();
+  bool _ready = false;
+  Future<List<Service>> _load() async {
+    _ready = false;
+    try {
+      return await _repository.list();
+    } finally {
+      if (mounted) setState(() => _ready = true);
+    }
+  }
+
+  bool get _readOnly =>
+      !_ready || _repository.offline || ApiClient.connectionUnavailable;
   var _busy = false;
 
   Future<void> _edit([Service? existing]) async {
@@ -127,7 +142,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     try {
       await action();
       if (!mounted) return;
-      final services = _repository.list();
+      final services = _load();
       setState(() {
         _services = services;
       });
@@ -149,12 +164,30 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             child: Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
-                onPressed: _busy ? null : () => _edit(),
+                onPressed: _busy || _readOnly ? null : () => _edit(),
                 icon: const Icon(Icons.add),
                 label: const Text('Novo serviço'),
               ),
             ),
           ),
+          if (_repository.offline)
+            const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                    'Sem conexão. Serviços salvos no aparelho; edição indisponível.')),
+          TextButton.icon(
+              onPressed: () async {
+                if (ApiClient.connectionUnavailable) {
+                  await ApiClient.probeConnection();
+                }
+                if (!mounted) return;
+                final services = _load();
+                setState(() {
+                  _services = services;
+                });
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Atualizar serviços')),
           if (_busy) const LinearProgressIndicator(),
           Expanded(
             child: FutureBuilder<List<Service>>(
@@ -190,12 +223,14 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              onPressed: _busy ? null : () => _edit(service),
+                              onPressed: _busy || _readOnly
+                                  ? null
+                                  : () => _edit(service),
                               tooltip: 'Editar ${service.name}',
                               icon: const Icon(Icons.edit_outlined),
                             ),
                             IconButton(
-                              onPressed: _busy
+                              onPressed: _busy || _readOnly
                                   ? null
                                   : () => _change(() => _repository.setEnabled(
                                       service, !service.enabled)),
@@ -207,7 +242,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                                   : Icons.check_circle_outline),
                             ),
                             IconButton(
-                              onPressed: _busy || service.linked
+                              onPressed: _busy || _readOnly || service.linked
                                   ? null
                                   : () => _delete(service),
                               tooltip: service.linked

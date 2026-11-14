@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
 import 'package:barbearia_frontend/app/theme/app_theme.dart';
 
@@ -15,7 +16,7 @@ class BarbershopApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: mode,
-        initialRoute: AppRouter.login,
+        initialRoute: ApiClient.user == null ? AppRouter.login : AppRouter.home,
         onGenerateRoute: AppRouter.onGenerateRoute,
         onGenerateInitialRoutes: (name) => [
           AppRouter.onGenerateRoute(RouteSettings(name: name)),

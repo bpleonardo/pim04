@@ -49,7 +49,7 @@ class AppRouter {
               initialContent: const CatalogoScreen(),
             ),
       dashboard => AppPlatform.mobile
-          ? const CortesDiaScreen()
+          ? const DashboardScreen()
           : DesktopLayout(
               initialRoute: dashboard,
               initialContent: const DashboardScreen(),

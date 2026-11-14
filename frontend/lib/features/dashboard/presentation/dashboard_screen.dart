@@ -113,6 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_repository.offline)
+          const Text(
+              'Sem conexão. Indicadores calculados com os dados salvos; podem estar desatualizados.'),
         Text(
             '${shopDateLabel(agenda.keys.first)} até ${shopDateLabel(agenda.keys.last)}'),
         const SizedBox(height: 12),

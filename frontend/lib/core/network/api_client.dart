@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:barbearia_frontend/core/responsive/app_platform.dart';
 import 'package:barbearia_frontend/core/config/api_config.dart';
 import 'package:barbearia_frontend/features/auth/models/user.dart';
 import 'package:http/http.dart' as http;
@@ -21,6 +23,23 @@ class ApiException implements Exception {
 
 class ApiClient {
   static String get baseUrl => ApiConfig.baseUrl;
+  static bool connectionUnavailable = false;
+  static Future<bool> probeConnection() async {
+    final client = http.Client();
+    try {
+      final response = await client
+          .get(Uri.parse('$baseUrl/api/ping'))
+          .timeout(const Duration(seconds: 3));
+      connectionUnavailable =
+          response.statusCode >= 500 || response.statusCode == 408;
+    } catch (_) {
+      connectionUnavailable = true;
+    } finally {
+      client.close();
+    }
+    return !connectionUnavailable;
+  }
+
   static String? token;
   static User? user;
   static String? _refreshToken;
@@ -28,7 +47,48 @@ class ApiClient {
   static int _session = 0;
   static bool _signingOut = false;
 
-  static void startSession(Map<String, dynamic> response) {
+  static const _storage = FlutterSecureStorage();
+  static bool _storedSession = false;
+  static String get _storageKey => 'barbershop_session:$baseUrl';
+
+  static Future<void> persistSession() async {
+    if (!AppPlatform.mobile || token == null || user == null) return;
+    await _storage.write(
+        key: _storageKey,
+        value: jsonEncode({
+          'access_token': token,
+          'refresh_token': _refreshToken,
+          'user': {'id': user!.id, 'nome': user!.name, 'login': user!.login},
+        }));
+    _storedSession = true;
+  }
+
+  static Future<void> restoreSession() async {
+    if (!AppPlatform.mobile) return;
+    final value = await _storage.read(key: _storageKey);
+    if (value == null) return;
+    try {
+      final data = Map<String, dynamic>.from(jsonDecode(value));
+      _setSession(data);
+      _storedSession = true;
+      connectionUnavailable = true;
+    } on FormatException {
+      await _storage.delete(key: _storageKey);
+    }
+  }
+
+  static Future<void> startSession(Map<String, dynamic> response) async {
+    _setSession(response);
+    connectionUnavailable = false;
+    try {
+      await persistSession();
+    } catch (_) {
+      await signOut();
+      rethrow;
+    }
+  }
+
+  static void _setSession(Map<String, dynamic> response) {
     _session++;
     _refreshing = null;
     token = response['access_token'] as String;
@@ -53,21 +113,25 @@ class ApiClient {
           await ApiClient().request('POST', '/api/login/logout',
               body: {'refresh_token': refresh});
         } on ApiException catch (error) {
-          if (error.statusCode != 401) rethrow;
+          if (error.statusCode != 401 && !error.retryable) rethrow;
         }
       }
-      if (session == _session) signOut();
+      if (session == _session) await signOut();
     } finally {
       _signingOut = false;
     }
   }
 
-  static void signOut() {
+  static Future<void> signOut() async {
     _session++;
     _refreshToken = null;
     _refreshing = null;
     token = null;
     user = null;
+    if (_storedSession) {
+      await _storage.delete(key: _storageKey);
+      _storedSession = false;
+    }
   }
 
   static final _random = Random.secure();
@@ -87,13 +151,15 @@ class ApiClient {
       if (session != _session) return;
       token = data['access_token'] as String;
       _refreshToken = data['refresh_token'] as String;
+      await persistSession();
     } on ApiException catch (error) {
-      if (error.statusCode == 401 && session == _session) signOut();
+      if (error.statusCode == 401 && session == _session) await signOut();
       rethrow;
     }
   }
 
-  final http.Client _client = http.Client();
+  ApiClient({http.Client? client}) : _client = client ?? http.Client();
+  final http.Client _client;
   Future<dynamic> request(String method, String path,
           {Object? body, String? bearerToken, String? nonce}) =>
       _request(method, path,
@@ -144,8 +210,11 @@ class ApiClient {
               .timeout(const Duration(seconds: 15));
       }
     } catch (e) {
+      connectionUnavailable = true;
       throw ApiException('Falha de conexão: $e');
     }
+    connectionUnavailable =
+        response.statusCode == 408 || response.statusCode >= 500;
     if (retry &&
         authorization != null &&
         response.statusCode == 401 &&

@@ -1,67 +1,28 @@
-import 'dart:convert';
+import 'package:barbearia_frontend/features/appointments/data/offline_booking_repository.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 import 'package:barbearia_frontend/core/storage/app_database.dart'
     show AppDatabase;
-import 'package:sqflite/sqflite.dart';
 
 class ServiceRepository {
   final BarbershopApi api = BarbershopApi();
+  final _offlineBookings = OfflineBookingRepository();
+  bool offline = false;
   Future<void> save(Service service, {required bool creating}) =>
       api.saveService(service, creating: creating);
 
-  Future<void> setEnabled(Service service, bool enabled) async {
-    await api.setServiceEnabled(service.id, enabled);
-    if (AppDatabase.available) {
-      await (await AppDatabase.instance).update(
-        'servicos_cache',
-        {'json': jsonEncode(service.toJson()..['ativo'] = enabled)},
-        where: 'id = ?',
-        whereArgs: [service.id],
-      );
-    }
-  }
-
-  Future<void> delete(String id) async {
-    await api.deleteService(id);
-    if (AppDatabase.available) {
-      await (await AppDatabase.instance).delete(
-        'servicos_cache',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-    }
-  }
+  Future<void> setEnabled(Service service, bool enabled) =>
+      api.setServiceEnabled(service.id, enabled);
+  Future<void> delete(String id) => api.deleteService(id);
 
   Future<List<Service>> list() async {
-    try {
-      final records = await api.services();
-      if (AppDatabase.available) {
-        final db = await AppDatabase.instance;
-        final batch = db.batch();
-        batch.delete('servicos_cache');
-        for (final s in records) {
-          batch.insert(
-              'servicos_cache',
-              {
-                'id': s.id,
-                'json': jsonEncode(s.toJson()),
-                'atualizado_em': DateTime.now().toIso8601String()
-              },
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-        await batch.commit(noResult: true);
+    if (AppDatabase.available) {
+      try {
+        return await _offlineBookings.services();
+      } finally {
+        offline = _offlineBookings.offline;
       }
-      return records;
-    } catch (e) {
-      if (!AppDatabase.available) rethrow;
-      final db = await AppDatabase.instance;
-      final rows = await db.query('servicos_cache');
-      if (rows.isEmpty) rethrow;
-      return rows
-          .map((r) => Service.fromJson(
-              jsonDecode(r['json'] as String) as Map<String, dynamic>))
-          .toList();
     }
+    return api.services();
   }
 }

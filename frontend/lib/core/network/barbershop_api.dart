@@ -79,6 +79,27 @@ class BarbershopApi {
     });
   }
 
+  Future<Map<String, dynamic>> createBooking(
+          Map<String, dynamic> payload, String nonce) async =>
+      Map<String, dynamic>.from(await _client
+          .request('POST', '/api/agendamentos', body: payload, nonce: nonce));
+
+  Future<Appointment> appointment(String id) async =>
+      Appointment.fromJson(Map<String, dynamic>.from(
+          await _client.request('GET', '/api/agendamentos/$id')));
+
+  Future<Map<String, dynamic>> editAppointment(
+          String id, Map<String, dynamic> payload, {String? nonce}) async =>
+      Map<String, dynamic>.from(await _client.request(
+          'PUT', '/api/agendamentos/$id',
+          body: payload, nonce: nonce));
+
+  Future<Map<String, dynamic>> setAppointmentStatus(
+          String id, Map<String, dynamic> payload, {String? nonce}) async =>
+      Map<String, dynamic>.from(await _client.request(
+          'PATCH', '/api/agendamentos/$id',
+          body: payload, nonce: nonce));
+
   Future<void> updateStatus(String id, String status,
       {String? bearerToken, String? nonce}) async {
     await _client.request('PATCH', '/api/agendamentos/$id',

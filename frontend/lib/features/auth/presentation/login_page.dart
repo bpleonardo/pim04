@@ -1,5 +1,7 @@
 import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 import 'package:barbearia_frontend/core/network/api_client.dart';
@@ -30,7 +32,22 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final result =
           await BarbershopApi().login(login.text.trim(), password.text);
-      ApiClient.startSession(result);
+      await ApiClient.startSession(result);
+      if (AppPlatform.mobile) {
+        try {
+          final repository = AppointmentRepository();
+          await repository.loadDay(shopTime(DateTime.now()));
+          if (!await repository.bookings.prepared()) {
+            throw const ApiException('Preparação offline incompleta.');
+          }
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text(
+                    'Login salvo. Não foi possível preparar todos os dados offline; atualize a agenda com internet.')));
+          }
+        }
+      }
       if (mounted) Navigator.pushReplacementNamed(context, AppRouter.home);
     } catch (e) {
       if (mounted) {

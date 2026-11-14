@@ -3,6 +3,7 @@ import 'package:barbearia_frontend/features/appointments/presentation/agendament
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 import 'package:barbearia_frontend/features/employees/models/employee.dart';
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class BookingApi extends BarbershopApi {
@@ -41,6 +42,18 @@ void main() {
   testWidgets('Envia todos e apenas os serviços selecionados', (tester) async {
     final api = BookingApi();
     await tester.pumpWidget(MaterialApp(home: AgendamentoScreen(api: api)));
+    await tester.pumpAndSettle();
+
+    final today = shopTime(DateTime.now());
+    final tomorrow = DateTime(today.year, today.month, today.day + 1);
+    await tester.tap(find.byIcon(Icons.calendar_month));
+    await tester.pumpAndSettle();
+    if (tomorrow.month != today.month) {
+      await tester.tap(find.byTooltip('Next month'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('${tomorrow.day}').last);
+    await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Maria Silva');

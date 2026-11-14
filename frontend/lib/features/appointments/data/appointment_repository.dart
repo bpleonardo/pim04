@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:barbearia_frontend/features/appointments/data/offline_booking_repository.dart';
 
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
@@ -10,19 +11,53 @@ enum CompletionState { pending, sent, rejected }
 
 class DailyAgenda {
   const DailyAgenda(this.appointments,
-      {this.completions = const {}, this.offline = false});
+      {this.completions = const {},
+      this.offline = false,
+      this.pending = const []});
 
   final List<Appointment> appointments;
   final Map<String, CompletionState> completions;
   final bool offline;
+  final List<PendingAppointment> pending;
 }
 
 class AppointmentRepository {
   final BarbershopApi api = BarbershopApi();
+  final OfflineBookingRepository bookings = OfflineBookingRepository();
+  bool offline = false;
+  List<Appointment> _lastAppointments = [];
 
-  Future<List<Appointment>> list({DateTime? date}) => api.appointments(
-        date: date?.toIso8601String().split('T').first,
-      );
+  Future<List<Appointment>> list({DateTime? date}) async {
+    final day = date?.toIso8601String().split('T').first;
+    if (!AppDatabase.available) return api.appointments(date: day);
+    final store = bookings.store;
+    final key = 'report:$day';
+    try {
+      if (ApiClient.connectionUnavailable) {
+        throw const ApiException('Sem conexão');
+      }
+      final rows = await api.appointments(date: day, mine: true);
+      offline = false;
+      await store.write(key, rows.map((a) => a.toJson()).toList());
+      return rows;
+    } on ApiException catch (error) {
+      if (!error.retryable) rethrow;
+      offline = true;
+      final cached = await store.read(key) as List?;
+      if (cached == null) rethrow;
+      return cached
+          .map((a) => Appointment.fromJson(Map<String, dynamic>.from(a)))
+          .toList();
+    }
+  }
+
+  Future<void> changeStatus(Appointment appointment, String status) async {
+    final preview = Appointment.fromJson(appointment.toJson()
+      ..['status'] = status
+      ..['revision'] = appointment.revision + 1);
+    await bookings.enqueue('status', preview,
+        {'status': status, 'expectedRevision': appointment.revision});
+  }
 
   Future<void> updateStatus(String id, String status) =>
       api.updateStatus(id, status);
@@ -43,6 +78,13 @@ class AppointmentRepository {
     List<Appointment> appointments;
     var offline = false;
     try {
+      if (ApiClient.connectionUnavailable) {
+        throw const ApiException('Sem conexão');
+      }
+      await bookings.sync();
+      if (ApiClient.connectionUnavailable) {
+        throw const ApiException('Sem conexão');
+      }
       final rows = await _completions(db, session.scope);
       for (final entry in rows.entries) {
         if (entry.value == CompletionState.pending) {
@@ -50,11 +92,18 @@ class AppointmentRepository {
           if (result == CompletionState.pending) break;
         }
       }
+      if (ApiClient.connectionUnavailable) {
+        throw const ApiException('Sem conexão');
+      }
       appointments = await api.appointments(
         date: day,
         mine: true,
         bearerToken: session.token,
       );
+      await bookings.acknowledgeDay(date);
+      await bookings.store
+          .write('report:$day', appointments.map((a) => a.toJson()).toList());
+      await bookings.warmUp(date);
       await db.transaction((transaction) async {
         await transaction.insert(
             'daily_agenda',
@@ -78,8 +127,14 @@ class AppointmentRepository {
         where: 'scope = ? AND day = ?',
         whereArgs: [session.scope, day],
       );
-      if (cached.isEmpty) rethrow;
-      final items = jsonDecode(cached.single['json'] as String) as List;
+      if (cached.isEmpty &&
+          (await bookings.pending()).isEmpty &&
+          (await bookings.overlay([], date)).isEmpty) {
+        rethrow;
+      }
+      final items = cached.isEmpty
+          ? []
+          : jsonDecode(cached.single['json'] as String) as List;
       appointments = items
           .map((item) => Appointment.fromJson(
                 Map<String, dynamic>.from(item),
@@ -87,14 +142,23 @@ class AppointmentRepository {
           .toList();
       offline = true;
     }
+    _lastAppointments = await bookings.overlay(appointments, date);
     return DailyAgenda(
-      appointments,
+      _lastAppointments,
+      pending: await bookings.pending(),
       completions: await _completions(db, session.scope),
       offline: offline,
     );
   }
 
   Future<CompletionState> complete(String id) async {
+    final found = _lastAppointments.where((a) => a.id == id);
+    if (found.isNotEmpty) {
+      await changeStatus(found.first, 'concluido');
+      final pending = (await bookings.pending()).where((p) => p.entityId == id);
+      if (pending.any((p) => p.rejected)) return CompletionState.rejected;
+      return pending.isEmpty ? CompletionState.sent : CompletionState.pending;
+    }
     final session = _session();
     final db = await AppDatabase.instance;
     await db.insert(
