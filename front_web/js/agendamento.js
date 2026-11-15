@@ -21,20 +21,35 @@ const escapeHtml = value =>
   String(value).replace(/[&<>"']/g, char => htmlEntities[char]);
 
 async function requestJson(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, options);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(
-      payload?.error?.message || `Falha na requisição (${response.status}).`
-    );
-    error.status = response.status;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal });
+    const payload = await response.json().catch(error => {
+      if (controller.signal.aborted) throw error;
+      return {};
+    });
+    if (!response.ok) {
+      const error = new Error(
+        (typeof payload?.error === 'string' ? payload.error : payload?.error?.message)
+        || `Falha na requisição (${response.status}).`
+      );
+      error.status = response.status;
+      throw error;
+    }
+    return payload;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('A API demorou para responder. Tente novamente.');
+    }
     throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-  return payload;
 }
 
 function formatarDataInput(data) {
-  return data.toISOString().split('T')[0];
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
 }
 
 function obterLimitesDeData() {
@@ -103,7 +118,7 @@ async function carregarFuncionariosDaApi() {
     const data = Array.isArray(payload?.data) ? payload.data : [];
 
     if (data.length) {
-      funcionarios = data.map(f => ({ id: f.id, nome: f.nome, telefone: f.telefone }));
+      funcionarios = data.filter(f => f.isDeleted !== true).map(f => ({ id: f.id, nome: f.nome, telefone: f.telefone }));
       renderizarFuncionarios();
     }
   } catch (error) {
@@ -419,7 +434,10 @@ function focarPrimeiro(panel) {
   if (primeiro) primeiro.focus();
 }
 
+let slotRequest = 0;
+
 async function carregarHorarios(data) {
+  const request = ++slotRequest;
   horarios = [];
   estado.horario = null;
   renderizarHorarios();
@@ -434,7 +452,7 @@ async function carregarHorarios(data) {
     const { data: horariosApi } = await requestJson(
       `/horarios?${query.toString()}`
     );
-    if (dom.data.value !== data) return;
+    if (request !== slotRequest || dom.data.value !== data) return;
 
     horarios = horariosApi
       .filter(({ slot }) => /^\d{2}:\d{2}$/.test(slot))
@@ -449,7 +467,7 @@ async function carregarHorarios(data) {
       setVisibilidade(dom.horarioErr, true);
     }
   } catch (error) {
-    if (dom.data.value !== data) return;
+    if (request !== slotRequest || dom.data.value !== data) return;
     setTexto(dom.horarioErr, error.message);
     setVisibilidade(dom.horarioErr, true);
   }
