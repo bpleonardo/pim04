@@ -62,5 +62,11 @@ namespace api.DTOs
         [Required(ErrorMessage = "{0} é obrigatório!")]
         [MinLength(5, ErrorMessage = "{0} deve conter pelo menos {1} caracteres!")]
         public string Endereco { get; set; } = endereco;
+
+        [MinLength(3), MaxLength(100)]
+        public string? Login { get; set; }
+
+        [MinLength(6), MaxLength(128)]
+        public string? InitialPassword { get; set; }
     }
 }

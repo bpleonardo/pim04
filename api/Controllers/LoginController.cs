@@ -24,6 +24,13 @@ namespace api.Controllers
             return Ok(ApiResponse.Ok(loginResponse));
         }
 
+        [HttpPost("initial-password")]
+        public async Task<ActionResult> SetInitialPassword(InitialPasswordRequest request)
+        {
+            await _authService.SetInitialPasswordAsync(request);
+            return NoContent();
+        }
+
         [HttpPost("refresh")]
         public async Task<ActionResult<ApiResponse<LoginResponse>>> Refresh(RefreshRequest request)
         {

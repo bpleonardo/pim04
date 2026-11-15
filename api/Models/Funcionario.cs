@@ -26,8 +26,8 @@ namespace api.Models
             Guid? id,
             string nome,
             string? telefone,
-            string cpf,
-            string email,
+            string? cpf,
+            string? email,
             string endereco
         )
             : base(id, nome, telefone, cpf, email)

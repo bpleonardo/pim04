@@ -1,6 +1,9 @@
 using api.Data;
 using api.DTOs;
 using api.Models;
+using api.Exceptions;
+using api.Utilities;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -70,19 +73,30 @@ namespace api.Repositories
         /// <summary>
         /// Creates a new employee.
         /// </summary>
-        public async Task<bool> CreateOne(FuncionarioDTO dto)
+        public async Task<bool> CreateOne(FuncionarioDTO dto, string login, string initialPassword)
         {
             var entity = new Funcionario(
                 dto.Id,
                 dto.Nome,
                 dto.Telefone,
-                dto.CPF ?? string.Empty,
-                dto.Email ?? string.Empty,
+                dto.CPF,
+                dto.Email,
                 dto.Endereco ?? string.Empty
             );
 
-            await _context.Funcionarios.AddAsync(entity);
-            await _context.SaveChangesAsync();
+            var user = new Usuario(entity.Id, login, string.Empty) { PasswordExpired = true, Funcionario = entity };
+            user.Senha = AccountPassword.Hash(user, initialPassword);
+            _context.Usuarios.Add(user);
+            try
+            {
+                // Funcionário e credenciais são persistidos na mesma transação do SaveChanges.
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException error) when (error.InnerException is PostgresException
+                { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_Usuarios_Login" })
+            {
+                throw new ConflictException("Esse login já está em uso. Escolha outro.", "LOGIN_ALREADY_EXISTS");
+            }
 
             return true;
         }

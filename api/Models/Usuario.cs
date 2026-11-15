@@ -23,6 +23,9 @@ namespace api.Models
         [MinLength(6)]
         public string Senha { get; set; } = string.Empty;
 
+        [Column("password_expired")]
+        public bool PasswordExpired { get; set; }
+
         // Navegação 1:1 para o funcionário titular com exclusão em cascata
         [ForeignKey(nameof(IdFuncionario))]
         [DeleteBehavior(DeleteBehavior.Cascade)]

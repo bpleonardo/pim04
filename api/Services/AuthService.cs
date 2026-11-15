@@ -8,6 +8,7 @@ using api.DTOs;
 using api.Exceptions;
 using api.Models;
 using api.Repositories;
+using api.Utilities;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -31,11 +32,36 @@ namespace api.Services
                     "INVALID_CREDENTIALS"
                 );
 
-            var (employeeId, employeeName, login) = result;
+            if (result.PasswordExpired)
+                throw new ForbiddenException("Defina uma nova senha para acessar sua conta.", "PASSWORD_CHANGE_REQUIRED");
 
-            var response = Issue(employeeId, login, employeeName);
+            // Atualiza o formato das senhas legadas após uma autenticação válida.
+            result.Senha = AccountPassword.Hash(result, request.Senha);
+            var response = Issue(result.IdFuncionario, result.Login, result.Funcionario.Nome);
             await db.SaveChangesAsync();
             return response;
+        }
+
+        public async Task SetInitialPasswordAsync(InitialPasswordRequest request)
+        {
+            var user = await _repo.GetByLoginAndPassword(request.Login, request.Senha)
+                ?? throw new UnauthorizedException("Login ou senha inválidos.", "INVALID_CREDENTIALS");
+            if (!user.PasswordExpired)
+                throw new ConflictException("A senha inicial já foi alterada. Entre com sua senha atual.");
+            if (AccountPassword.Verify(user, request.NewPassword))
+                throw new ValidationException("A nova senha deve ser diferente da senha inicial.");
+
+            var passwordHash = AccountPassword.Hash(user, request.NewPassword);
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var changed = await db.Usuarios
+                .Where(item => item.IdFuncionario == user.IdFuncionario && item.PasswordExpired && item.Senha == user.Senha)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Senha, passwordHash)
+                    .SetProperty(item => item.PasswordExpired, false));
+            if (changed != 1)
+                throw new ConflictException("A senha já foi alterada. Entre novamente.");
+            await db.RefreshSessions.Where(item => item.EmployeeId == user.IdFuncionario).ExecuteDeleteAsync();
+            await transaction.CommitAsync();
         }
 
         public async Task<LoginResponse> RefreshAsync(string token)
@@ -45,7 +71,7 @@ namespace api.Services
             var session = await db.RefreshSessions.AsNoTracking()
                 .Include(item => item.User.Funcionario)
                 .SingleOrDefaultAsync(item => item.Jti == id && item.ExpiresAt > DateTime.UtcNow);
-            if (session == null || await Revoke(id) != 1) throw InvalidRefresh();
+            if (session == null || session.User.PasswordExpired || session.User.Funcionario.IsDeleted || await Revoke(id) != 1) throw InvalidRefresh();
 
             var response = Issue(session.EmployeeId, session.User.Login, session.User.Funcionario.Nome);
             await db.SaveChangesAsync();

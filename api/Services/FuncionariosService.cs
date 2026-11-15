@@ -21,17 +21,20 @@ namespace api.Services
 
         public async Task CreateOne(FuncionarioCreateDTO dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Login) || dto.Login.Trim().Length < 3 ||
+                string.IsNullOrEmpty(dto.InitialPassword) || dto.InitialPassword.Length < 6)
+                throw new ValidationException("Informe um login e uma senha inicial com pelo menos 6 caracteres.");
             var employee = new Funcionario(
                 null,
                 dto.Nome,
                 dto.Telefone,
-                dto.CPF ?? string.Empty,
-                dto.Email ?? string.Empty,
+                dto.CPF,
+                dto.Email,
                 dto.Endereco
             );
             await _repo.CreateOne(new FuncionarioDTO(
                 employee.Id, employee.Nome, employee.Telefone ?? string.Empty, employee.CPF,
-                employee.Email, employee.Endereco));
+                employee.Email, employee.Endereco), dto.Login.Trim(), dto.InitialPassword);
         }
 
         /// <summary>

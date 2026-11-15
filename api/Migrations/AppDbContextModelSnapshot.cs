@@ -279,6 +279,10 @@ namespace api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("PasswordExpired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("password_expired");
+
                     b.Property<string>("Senha")
                         .IsRequired()
                         .HasColumnType("text");

@@ -14,6 +14,16 @@ namespace api.DTOs
         public string Senha { get; set; }
     }
 
+    public sealed class InitialPasswordRequest
+    {
+        [Required, MinLength(3)]
+        public string Login { get; init; } = string.Empty;
+        [Required, MinLength(6), MaxLength(128)]
+        public string Senha { get; init; } = string.Empty;
+        [Required, MinLength(6), MaxLength(128)]
+        public string NewPassword { get; init; } = string.Empty;
+    }
+
     public readonly struct AuthUser
     {
         public Guid Id { get; init; }
