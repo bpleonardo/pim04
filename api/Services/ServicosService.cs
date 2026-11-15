@@ -9,6 +9,12 @@ namespace api.Services
     {
         private readonly ServicosRepository _repo = repo;
 
+        public async Task<ServicePriceChangeDTO[]> GetPriceHistory(Guid serviceId)
+        {
+            await GetOne(serviceId);
+            return await _repo.GetPriceHistory(serviceId);
+        }
+
         /// <summary>
         /// Retrieves all services.
         /// </summary>

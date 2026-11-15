@@ -17,7 +17,7 @@ namespace api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -28,10 +28,9 @@ namespace api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ClientRequestId").HasMaxLength(32).HasColumnType("character varying(32)");
-                    b.Property<string>("LastMutationId").HasMaxLength(32).HasColumnType("character varying(32)");
-                    b.Property<string>("RequestHash").HasColumnType("text");
-                    b.Property<long>("Revision").IsConcurrencyToken().HasColumnType("bigint");
+                    b.Property<string>("ClientRequestId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<DateTime>("DataAgendamento")
                         .HasColumnType("timestamp with time zone");
@@ -45,6 +44,17 @@ namespace api.Migrations
                     b.Property<Guid>("IdFuncionario")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("LastMutationId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("RequestHash")
+                        .HasColumnType("text");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(9)
@@ -56,7 +66,8 @@ namespace api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientRequestId").IsUnique();
+                    b.HasIndex("ClientRequestId")
+                        .IsUnique();
 
                     b.HasIndex("IdCliente");
 
@@ -135,18 +146,81 @@ namespace api.Migrations
                     b.ToTable("Funcionarios");
                 });
 
+            modelBuilder.Entity("api.Models.FuncionarioDisponibilidade", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DiaSemana")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("Fim")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<Guid>("IdFuncionario")
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeOnly>("Inicio")
+                        .HasColumnType("time without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdFuncionario", "DiaSemana");
+
+                    b.ToTable("FuncionarioDisponibilidades");
+                });
+
             modelBuilder.Entity("api.Models.RefreshSession", b =>
                 {
                     b.Property<Guid>("Jti")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("EmployeeId").HasColumnType("uuid");
-                    b.Property<DateTime>("ExpiresAt").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Jti");
+
                     b.HasIndex("EmployeeId");
+
                     b.ToTable("RefreshSessions");
+                });
+
+            modelBuilder.Entity("api.Models.ServicePriceChange", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("NewPrice")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("OldPrice")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("ServicePriceChanges");
                 });
 
             modelBuilder.Entity("api.Models.Servico", b =>
@@ -236,6 +310,38 @@ namespace api.Migrations
                     b.Navigation("Funcionario");
                 });
 
+            modelBuilder.Entity("api.Models.FuncionarioDisponibilidade", b =>
+                {
+                    b.HasOne("api.Models.Funcionario", "Funcionario")
+                        .WithMany("Disponibilidades")
+                        .HasForeignKey("IdFuncionario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Funcionario");
+                });
+
+            modelBuilder.Entity("api.Models.RefreshSession", b =>
+                {
+                    b.HasOne("api.Models.Usuario", "User")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("api.Models.ServicePriceChange", b =>
+                {
+                    b.HasOne("api.Models.Servico", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("api.Models.ServicoRealizado", b =>
                 {
                     b.HasOne("api.Models.Agendamento", "Agendamento")
@@ -253,17 +359,6 @@ namespace api.Migrations
                     b.Navigation("Agendamento");
 
                     b.Navigation("Servico");
-                });
-
-            modelBuilder.Entity("api.Models.RefreshSession", b =>
-                {
-                    b.HasOne("api.Models.Usuario", "User")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>
@@ -287,47 +382,13 @@ namespace api.Migrations
                     b.Navigation("Agendamentos");
                 });
 
-            modelBuilder.Entity("api.Models.FuncionarioDisponibilidade", b =>
-                {
-                    b.HasOne("api.Models.Funcionario", "Funcionario")
-                        .WithMany("Disponibilidades")
-                        .HasForeignKey("IdFuncionario")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                    b.Navigation("Funcionario");
-                });
-
             modelBuilder.Entity("api.Models.Funcionario", b =>
                 {
-                    b.Navigation("Disponibilidades");
                     b.Navigation("Agendamentos");
 
+                    b.Navigation("Disponibilidades");
+
                     b.Navigation("Usuario");
-                });
-
-            modelBuilder.Entity("api.Models.FuncionarioDisponibilidade", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("DiaSemana")
-                        .HasColumnType("integer");
-
-                    b.Property<TimeOnly>("Fim")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<Guid>("IdFuncionario")
-                        .HasColumnType("uuid");
-
-                    b.Property<TimeOnly>("Inicio")
-                        .HasColumnType("time without time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdFuncionario", "DiaSemana");
-
-                    b.ToTable("FuncionarioDisponibilidades");
                 });
 
             modelBuilder.Entity("api.Models.Servico", b =>

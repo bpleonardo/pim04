@@ -44,6 +44,9 @@ namespace api
                 return ConnectionMultiplexer.Connect(GetRedisConnectionString(builder));
             });
 
+            builder.Services.AddScoped<ReportsRepository>();
+            builder.Services.AddScoped<ReportsService>();
+
             builder.Services.AddScoped<ServicosRepository>();
             builder.Services.AddScoped<ServicosService>();
 

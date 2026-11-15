@@ -1,4 +1,5 @@
 using api.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using api.Services;
 using api.Utilities;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,11 @@ namespace api.Controllers
             var servicos = await _service.GetAll();
             return Ok(ApiResponse.Ok(servicos));
         }
+
+        [Authorize]
+        [HttpGet("{id:guid}/price-history")]
+        public async Task<ActionResult<ApiResponse<ServicePriceChangeDTO[]>>> GetPriceHistory(Guid id) =>
+            Ok(ApiResponse.Ok(await _service.GetPriceHistory(id)));
 
         // POST: /api/servicos
         [HttpPost]

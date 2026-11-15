@@ -13,6 +13,7 @@ namespace api.Data
         public DbSet<RefreshSession> RefreshSessions => Set<RefreshSession>();
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<Servico> Servicos => Set<Servico>();
+        public DbSet<ServicePriceChange> ServicePriceChanges => Set<ServicePriceChange>();
         public DbSet<Agendamento> Agendamentos => Set<Agendamento>();
         public DbSet<FuncionarioDisponibilidade> FuncionarioDisponibilidades =>
             Set<FuncionarioDisponibilidade>();

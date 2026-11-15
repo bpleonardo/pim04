@@ -14,6 +14,14 @@ namespace api.Repositories
     {
         private readonly AppDbContext _context = context;
 
+        public Task<ServicePriceChangeDTO[]> GetPriceHistory(Guid serviceId) => _context.ServicePriceChanges
+            .AsNoTracking()
+            .Where(change => change.ServiceId == serviceId)
+            .OrderByDescending(change => change.ChangedAt)
+            .ThenByDescending(change => change.Id)
+            .Select(change => new ServicePriceChangeDTO(change.Id, change.OldPrice, change.NewPrice, change.ChangedAt))
+            .ToArrayAsync();
+
         /// <summary>
         /// Retrieves all services.
         /// </summary>
