@@ -7,9 +7,10 @@ import 'package:barbearia_frontend/features/auth/models/user.dart';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
-  const ApiException(this.message, [this.statusCode]);
+  const ApiException(this.message, [this.statusCode, this.code]);
 
   final String message;
+  final String? code;
   final int? statusCode;
 
   bool get retryable {
@@ -247,12 +248,14 @@ class ApiClient {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final error = decoded is Map
           ? (decoded['error'] ??
+              decoded['message'] ??
               decoded['title'] ??
               'Erro HTTP ${response.statusCode}')
           : response.reasonPhrase;
       throw ApiException(
           error is Map ? '${error['message'] ?? error}' : '$error',
-          response.statusCode);
+          response.statusCode,
+          decoded is Map ? decoded['code'] as String? : null);
     }
     if (decoded is Map && decoded['success'] == false) {
       throw Exception('${decoded['error'] ?? 'Erro da API'}');

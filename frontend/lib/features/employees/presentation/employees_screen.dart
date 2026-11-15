@@ -23,60 +23,99 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     var cpf = existing?.cpf ?? '';
     var email = existing?.email ?? '';
     var address = existing?.address ?? '';
+    var login = '';
+    var initialPassword = '';
+    var credentialsStep = false;
     final result = await showDialog<Employee>(
       context: context,
-      builder: (context) => AlertDialog(
-        title:
-            Text(existing == null ? 'Novo funcionário' : 'Editar funcionário'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: form,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              _field('Nome', name, (value) => name = value, min: 3),
-              _field('Telefone', phone, (value) => phone = value, min: 13),
-              _field('CPF', cpf, (value) => cpf = value, required: false),
-              _field('E-mail', email, (value) => email = value,
-                  required: false),
-              _field('Endereço', address, (value) => address = value, min: 5),
-            ]),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () {
-              if (!form.currentState!.validate()) return;
-              Navigator.pop(
-                  context,
-                  Employee(
-                    id: existing?.id ?? '',
-                    name: name,
-                    phone: phone,
-                    cpf: cpf.isEmpty ? null : cpf,
-                    email: email.isEmpty ? null : email,
-                    address: address,
-                  ));
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
+      builder: (context) => StatefulBuilder(
+          builder: (context, updateDialog) => AlertDialog(
+                title: Text(existing == null
+                    ? (credentialsStep
+                        ? 'Dados de acesso — 2 de 2'
+                        : 'Novo funcionário — 1 de 2')
+                    : 'Editar funcionário'),
+                content: SingleChildScrollView(
+                  child: Form(
+                    key: form,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      if (!credentialsStep) ...[
+                        _field('Nome', name, (value) => name = value, min: 3),
+                        _field('Telefone', phone, (value) => phone = value,
+                            min: 13),
+                        _field('CPF', cpf, (value) => cpf = value,
+                            required: false),
+                        _field('E-mail', email, (value) => email = value,
+                            required: false),
+                        _field('Endereço', address, (value) => address = value,
+                            min: 5),
+                      ] else ...[
+                        const Text(
+                            'O funcionário deverá trocar a senha inicial no primeiro acesso.'),
+                        const SizedBox(height: 16),
+                        _field('Login', login, (value) => login = value,
+                            min: 3),
+                        _field('Senha inicial', initialPassword,
+                            (value) => initialPassword = value,
+                            min: 6, password: true),
+                      ],
+                    ]),
+                  ),
+                ),
+                actions: [
+                  if (credentialsStep)
+                    TextButton(
+                        onPressed: () =>
+                            updateDialog(() => credentialsStep = false),
+                        child: const Text('Voltar')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar')),
+                  FilledButton(
+                    onPressed: () {
+                      if (!form.currentState!.validate()) return;
+                      if (existing == null && !credentialsStep) {
+                        updateDialog(() => credentialsStep = true);
+                        return;
+                      }
+                      Navigator.pop(
+                          context,
+                          Employee(
+                            id: existing?.id ?? '',
+                            name: name,
+                            phone: phone,
+                            cpf: cpf.isEmpty ? null : cpf,
+                            email: email.isEmpty ? null : email,
+                            address: address,
+                          ));
+                    },
+                    child: Text(existing == null && !credentialsStep
+                        ? 'Continuar'
+                        : 'Salvar'),
+                  ),
+                ],
+              )),
     );
     if (result != null && mounted) {
-      await _change(() => _repository.save(result, creating: existing == null));
+      await _change(() => _repository.save(result,
+          creating: existing == null,
+          login: existing == null ? login : null,
+          initialPassword: existing == null ? initialPassword : null));
     }
   }
 
   Widget _field(String label, String value, ValueChanged<String> onChanged,
-          {int min = 1, bool required = true}) =>
+          {int min = 1, bool required = true, bool password = false}) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: TextFormField(
+          key: ValueKey(label),
           initialValue: value,
+          obscureText: password,
+          enableSuggestions: !password,
+          autocorrect: !password,
           decoration: InputDecoration(labelText: label),
-          onChanged: (value) => onChanged(value.trim()),
+          onChanged: (value) => onChanged(password ? value : value.trim()),
           validator: (value) => !required && (value?.isEmpty ?? true)
               ? null
               : (value == null || value.length < min

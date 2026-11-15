@@ -11,6 +11,15 @@ class BarbershopApi {
   Future<Map<String, dynamic>> login(String login, String password) async =>
       Map<String, dynamic>.from(await _client.request('POST', '/api/Login',
           body: {'login': login, 'senha': password}));
+  Future<void> setInitialPassword(
+      String login, String password, String newPassword) async {
+    await _client.request('POST', '/api/login/initial-password', body: {
+      'login': login,
+      'senha': password,
+      'newPassword': newPassword,
+    });
+  }
+
   Future<List<Service>> services() async =>
       (await _client.request('GET', '/api/Servicos') as List)
           .map((x) => Service.fromJson(Map<String, dynamic>.from(x)))
@@ -81,7 +90,8 @@ class BarbershopApi {
     );
   }
 
-  Future<void> saveEmployee(Employee employee, {required bool creating}) async {
+  Future<void> saveEmployee(Employee employee,
+      {required bool creating, String? login, String? initialPassword}) async {
     await _client.request(
       creating ? 'POST' : 'PUT',
       creating ? '/api/funcionarios' : '/api/funcionarios/${employee.id}',
@@ -91,6 +101,8 @@ class BarbershopApi {
         'cpf': employee.cpf,
         'email': employee.email,
         'endereco': employee.address,
+        if (creating) 'login': login,
+        if (creating) 'initialPassword': initialPassword,
       },
     );
   }

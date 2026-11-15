@@ -16,7 +16,12 @@ class EmployeesRepository extends EmployeeRepository {
   }
 
   @override
-  Future<void> save(Employee employee, {required bool creating}) async {
+  Future<void> save(Employee employee,
+      {required bool creating, String? login, String? initialPassword}) async {
+    if (creating) {
+      expect(login, 'profissional.teste');
+      expect(initialPassword, 'senha inicial');
+    }
     creations.add(creating);
     employees = [
       Employee(
@@ -51,6 +56,12 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(1), '5511000000000');
     await tester.enterText(
         find.byType(TextFormField).at(4), 'Endereço de teste');
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+    expect(repository.creations, isEmpty);
+    await tester.enterText(
+        find.byType(TextFormField).at(0), 'profissional.teste');
+    await tester.enterText(find.byType(TextFormField).at(1), 'senha inicial');
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
     expect(find.text('Profissional de Teste'), findsOneWidget);
