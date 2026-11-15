@@ -10,7 +10,6 @@ namespace api.Models
     [Index(nameof(Email), IsUnique = true)]
     public class Funcionario : Pessoa
     {
-        [Required]
         [MinLength(5)]
         public string? Endereco { get; set; }
 

@@ -287,6 +287,16 @@ namespace api.Migrations
                     b.Navigation("Agendamentos");
                 });
 
+            modelBuilder.Entity("api.Models.FuncionarioDisponibilidade", b =>
+                {
+                    b.HasOne("api.Models.Funcionario", "Funcionario")
+                        .WithMany("Disponibilidades")
+                        .HasForeignKey("IdFuncionario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                    b.Navigation("Funcionario");
+                });
+
             modelBuilder.Entity("api.Models.Funcionario", b =>
                 {
                     b.Navigation("Disponibilidades");

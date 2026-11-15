@@ -1,7 +1,11 @@
+using api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace api.Migrations;
 
+[DbContext(typeof(AppDbContext))]
+[Migration("20261114120000_AddFuncionarioSoftDelete")]
 public partial class AddFuncionarioSoftDelete : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
