@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 
 class AvailabilityScreen extends StatefulWidget {
-  const AvailabilityScreen({super.key, this.embedded = false});
+  const AvailabilityScreen({super.key, this.embedded = false, this.api});
+  final BarbershopApi? api;
   final bool embedded;
 
   @override
@@ -10,7 +11,7 @@ class AvailabilityScreen extends StatefulWidget {
 }
 
 class _AvailabilityScreenState extends State<AvailabilityScreen> {
-  final _api = BarbershopApi();
+  late final _api = widget.api ?? BarbershopApi();
   late final Future<List<_Day>> _days = _load();
   bool _busy = false;
 
@@ -32,6 +33,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }
 
   Future<void> _save() async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       final days = await _days;
@@ -67,34 +69,57 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   Future<void> _addInterval(_Day day) async {
     final start = TextEditingController(text: '09:00');
     final end = TextEditingController(text: '18:00');
+    if (_busy) return;
+    final form = GlobalKey<FormState>();
     final result = await showDialog<_Interval>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Horário de ${day.name}'),
-        content: Row(children: [
-          Expanded(
-              child: TextField(
-                  controller: start,
-                  decoration: const InputDecoration(labelText: 'Início'))),
-          const SizedBox(width: 12),
-          Expanded(
-              child: TextField(
-                  controller: end,
-                  decoration: const InputDecoration(labelText: 'Fim'))),
-        ]),
+        content: Form(
+            key: form,
+            child: Row(children: [
+              Expanded(
+                  child: TextFormField(
+                      validator: (value) => RegExp(r'^([01]\d|2[0-3]):[0-5]\d$')
+                              .hasMatch(value ?? '')
+                          ? null
+                          : 'Use HH:mm',
+                      controller: start,
+                      decoration: const InputDecoration(labelText: 'Início'))),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: TextFormField(
+                      validator: (_) {
+                        final interval = _Interval(start.text, end.text);
+                        if (!_valid(interval)) {
+                          return 'Informe um fim posterior ao início';
+                        }
+                        if (day.intervals.any((other) =>
+                            interval.start.compareTo(other.end) < 0 &&
+                            interval.end.compareTo(other.start) > 0)) {
+                          return 'Este intervalo sobrepõe outro';
+                        }
+                        return null;
+                      },
+                      controller: end,
+                      decoration: const InputDecoration(labelText: 'Fim'))),
+            ])),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancelar')),
           FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, _Interval(start.text, end.text)),
+            onPressed: () {
+              if (form.currentState!.validate()) {
+                Navigator.pop(context, _Interval(start.text, end.text));
+              }
+            },
             child: const Text('Adicionar'),
           ),
         ],
       ),
     );
-    if (result == null || !_valid(result)) return;
+    if (!mounted || result == null) return;
     setState(() => day.intervals.add(result));
   }
 
@@ -137,12 +162,14 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                               title: Text('${interval.start}–${interval.end}'),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete_outline),
-                                onPressed: () => setState(
-                                    () => day.intervals.remove(interval)),
+                                onPressed: _busy
+                                    ? null
+                                    : () => setState(
+                                        () => day.intervals.remove(interval)),
                               ),
                             ),
                           TextButton.icon(
-                            onPressed: () => _addInterval(day),
+                            onPressed: _busy ? null : () => _addInterval(day),
                             icon: const Icon(Icons.add),
                             label: const Text('Adicionar intervalo'),
                           ),

@@ -52,4 +52,26 @@ void main() {
     expect(values, isEmpty);
     expect(ApiClient.user, isNull);
   });
+  for (final value in [
+    'not-json',
+    '{}',
+    '{"access_token":"partial","refresh_token":42,"user":{}}',
+    '{"access_token":"","refresh_token":"refresh","user":{"id":"ana","nome":"Ana","login":"ana"}}'
+  ]) {
+    test('Descarta sessão inválida sem travar a inicialização: $value',
+        () async {
+      await ApiClient.startSession({
+        'access_token': 'old',
+        'refresh_token': 'refresh',
+        'user': {'id': 'ana', 'nome': 'Ana', 'login': 'ana'},
+      });
+      values[values.keys.single] = value;
+      ApiClient.user = null;
+      ApiClient.token = null;
+      await ApiClient.restoreSession();
+      expect(ApiClient.user, isNull);
+      expect(ApiClient.token, isNull);
+      expect(values, isEmpty);
+    });
+  }
 }

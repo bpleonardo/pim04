@@ -73,7 +73,9 @@ class ApiClient {
       _setSession(data);
       _storedSession = true;
       connectionUnavailable = true;
-    } on FormatException {
+    } catch (error) {
+      if (error is! FormatException && error is! TypeError) rethrow;
+      await signOut();
       await _storage.delete(key: _storageKey);
     }
   }
@@ -90,11 +92,21 @@ class ApiClient {
   }
 
   static void _setSession(Map<String, dynamic> response) {
+    final access = response['access_token'] as String;
+    final refresh = response['refresh_token'] as String;
+    final account =
+        User.fromJson(Map<String, dynamic>.from(response['user'] as Map));
+    if (access.isEmpty ||
+        refresh.isEmpty ||
+        account.id.isEmpty ||
+        account.id == 'null') {
+      throw const FormatException('Sessão inválida. Entre novamente.');
+    }
     _session++;
     _refreshing = null;
-    token = response['access_token'] as String;
-    _refreshToken = response['refresh_token'] as String;
-    user = User.fromJson(Map<String, dynamic>.from(response['user'] as Map));
+    token = access;
+    _refreshToken = refresh;
+    user = account;
   }
 
   static Future<void> logout() async {

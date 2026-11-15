@@ -54,6 +54,7 @@ Future<void> showApiConfigDialog(BuildContext context) async {
                     });
                     final errorMessage =
                         await saveApiConfiguration(controller.text);
+                    if (!dialogContext.mounted) return;
                     if (errorMessage == null) {
                       if (dialogContext.mounted) {
                         Navigator.pop(dialogContext);
