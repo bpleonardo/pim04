@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/features/catalog/models/service_price_change.dart';
 import 'package:barbearia_frontend/features/appointments/data/offline_booking_repository.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
@@ -8,6 +9,8 @@ class ServiceRepository {
   final BarbershopApi api = BarbershopApi();
   final _offlineBookings = OfflineBookingRepository();
   bool offline = false;
+  Future<List<ServicePriceChange>> priceHistory(String id) =>
+      api.servicePriceHistory(id);
   Future<void> save(Service service, {required bool creating}) =>
       api.saveService(service, creating: creating);
 

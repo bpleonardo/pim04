@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
 import 'dart:convert';
 import 'package:barbearia_frontend/features/appointments/data/offline_booking_repository.dart';
 
@@ -48,6 +49,32 @@ class AppointmentRepository {
       return cached
           .map((a) => Appointment.fromJson(Map<String, dynamic>.from(a)))
           .toList();
+    }
+  }
+
+  Future<DailyReport> dailyReport(DateTime date) async {
+    if (!AppDatabase.available) return api.dailyReport(date);
+    final day = date.toIso8601String().split('T').first;
+    final store = bookings.store;
+    try {
+      if (ApiClient.connectionUnavailable) {
+        throw const ApiException('Sem conexão');
+      }
+      final report = await api.dailyReport(date, mine: true);
+      await store.write('daily_summary:$day', report.toJson());
+      return report;
+    } on ApiException catch (error) {
+      if (!error.retryable) rethrow;
+      final cached = await store.read('daily_summary:$day');
+      if (cached != null) {
+        return DailyReport.fromJson(Map<String, dynamic>.from(cached as Map),
+            cached: true);
+      }
+      final appointments = await store.read('report:$day') as List?;
+      if (appointments == null) rethrow;
+      return DailyReport.fromAppointments(appointments
+          .map((item) => Appointment.fromJson(Map<String, dynamic>.from(item)))
+          .toList());
     }
   }
 

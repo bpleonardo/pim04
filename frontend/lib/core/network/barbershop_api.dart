@@ -1,3 +1,5 @@
+import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
+import 'package:barbearia_frontend/features/catalog/models/service_price_change.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
 import 'package:barbearia_frontend/features/employees/models/employee.dart';
 import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
@@ -13,6 +15,19 @@ class BarbershopApi {
       (await _client.request('GET', '/api/Servicos') as List)
           .map((x) => Service.fromJson(Map<String, dynamic>.from(x)))
           .toList();
+  Future<List<ServicePriceChange>> servicePriceHistory(String id) async =>
+      (await _client.request('GET', '/api/servicos/$id/price-history') as List)
+          .map((item) =>
+              ServicePriceChange.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+  Future<DailyReport> dailyReport(DateTime date, {bool mine = false}) async {
+    final day = date.toIso8601String().split('T').first;
+    final query =
+        Uri(queryParameters: {'date': day, if (mine) 'mine': 'true'}).query;
+    return DailyReport.fromJson(Map<String, dynamic>.from(
+        await _client.request('GET', '/api/reports/daily?$query')));
+  }
+
   Future<void> saveService(Service service, {required bool creating}) async {
     await _client.request(
       creating ? 'POST' : 'PUT',

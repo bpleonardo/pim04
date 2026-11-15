@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
-import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
+import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
 
 enum _Period { today, week, month }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, this.embedded = false});
+  const DashboardScreen({super.key, this.embedded = false, this.repository});
+  final AppointmentRepository? repository;
 
   final bool embedded;
 
@@ -16,11 +17,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _repository = AppointmentRepository();
+  late final _repository = widget.repository ?? AppointmentRepository();
   var _period = _Period.today;
   late var _dashboard = _load();
 
-  Future<Map<DateTime, List<Appointment>>> _load() async {
+  Future<Map<DateTime, DailyReport>> _load() async {
     final today = shopTime(DateTime.now());
     final start = switch (_period) {
       _Period.today => today.day,
@@ -32,11 +33,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         DateTime.utc(today.year, today.month, day),
     ];
 
-    final results = <DateTime, List<Appointment>>{};
+    final results = <DateTime, DailyReport>{};
     // A API devolve um dia por chamada. Limita as consultas simultâneas.
     for (var offset = 0; offset < days.length; offset += 7) {
       final batch = await Future.wait(days.skip(offset).take(7).map(
-            (day) async => MapEntry(day, await _repository.list(date: day)),
+            (day) async => MapEntry(day, await _repository.dailyReport(day)),
           ));
       results.addEntries(batch);
     }
@@ -60,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '${sign}R\$ $whole,$decimals';
   }
 
-  Widget _summary(Map<DateTime, List<Appointment>> agenda) {
+  Widget _summary(Map<DateTime, DailyReport> agenda) {
     final theme = Theme.of(context);
     final realizedByDay = <DateTime, double>{};
     final serviceCounts = <String, int>{};
@@ -69,23 +70,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     var completedCount = 0;
     var activeCount = 0;
     for (final entry in agenda.entries) {
-      var dailyRealized = 0.0;
-      for (final appointment in entry.value) {
-        if (appointment.status == 'cancelado') continue;
-        activeCount++;
-        if (appointment.status == 'concluido') {
-          dailyRealized += appointment.total;
-          completedCount++;
-        } else {
-          pending += appointment.total;
-        }
-        for (final service in appointment.services.toSet()) {
-          serviceCounts.update(service, (count) => count + 1,
-              ifAbsent: () => 1);
-        }
+      final report = entry.value;
+      realized += report.completedRevenue;
+      pending += report.pendingRevenue;
+      completedCount += report.completedCount;
+      activeCount += report.activeCount;
+      realizedByDay[entry.key] = report.completedRevenue;
+      for (final service in report.serviceCounts.entries) {
+        serviceCounts.update(service.key, (count) => count + service.value,
+            ifAbsent: () => service.value);
       }
-      realized += dailyRealized;
-      realizedByDay[entry.key] = dailyRealized;
     }
 
     final ranking = serviceCounts.entries.toList()
@@ -113,7 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_repository.offline)
+        if (agenda.values.any((report) => report.cached))
           const Text(
               'Sem conexão. Indicadores calculados com os dados salvos; podem estar desatualizados.'),
         Text(

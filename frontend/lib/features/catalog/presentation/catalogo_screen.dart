@@ -1,3 +1,6 @@
+import 'package:barbearia_frontend/core/responsive/app_platform.dart';
+import 'package:barbearia_frontend/core/shop_time.dart';
+import 'package:barbearia_frontend/features/catalog/models/service_price_change.dart';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/core/network/api_client.dart';
 import 'package:barbearia_frontend/features/catalog/data/service_repository.dart';
@@ -30,6 +33,53 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
   bool get _readOnly =>
       !_ready || _repository.offline || ApiClient.connectionUnavailable;
   var _busy = false;
+
+  Future<void> _priceHistory(Service service) async {
+    final history = _repository.priceHistory(service.id);
+    String currency(double value) =>
+        'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+    await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text('Histórico de preços · ${service.name}'),
+              content: SizedBox(
+                  width: 480,
+                  height: 320,
+                  child: FutureBuilder<List<ServicePriceChange>>(
+                      future: history,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        if (snapshot.hasError) {
+                          return const Center(
+                              child: Text(
+                                  'Não foi possível carregar o histórico. Confira a conexão.'));
+                        }
+                        final changes = snapshot.data!;
+                        if (changes.isEmpty) {
+                          return const Center(
+                              child: Text(
+                                  'Nenhuma alteração de preço registrada.'));
+                        }
+                        return ListView(children: [
+                          for (final change in changes)
+                            ListTile(
+                              title: Text(
+                                  '${currency(change.oldPrice)} → ${currency(change.newPrice)}'),
+                              subtitle: Text(
+                                  '${shopDateLabel(shopTime(change.changedAt))} às ${shopClockLabel(shopTime(change.changedAt))}'),
+                            )
+                        ]);
+                      })),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Fechar'))
+              ],
+            ));
+  }
 
   Future<void> _edit([Service? existing]) async {
     final form = GlobalKey<FormState>();
@@ -222,6 +272,14 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (!AppPlatform.mobile)
+                              IconButton(
+                                  tooltip:
+                                      'Histórico de preços de ${service.name}',
+                                  onPressed: _busy || _readOnly
+                                      ? null
+                                      : () => _priceHistory(service),
+                                  icon: const Icon(Icons.history)),
                             IconButton(
                               onPressed: _busy || _readOnly
                                   ? null
