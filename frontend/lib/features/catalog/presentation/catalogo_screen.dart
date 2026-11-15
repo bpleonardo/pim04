@@ -211,13 +211,30 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: _busy || _readOnly ? null : () => _edit(),
-                icon: const Icon(Icons.add),
-                label: const Text('Novo serviço'),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: 'Atualizar serviços',
+                  onPressed: () async {
+                    if (ApiClient.connectionUnavailable) {
+                      await ApiClient.probeConnection();
+                    }
+                    if (!mounted) return;
+                    final services = _load();
+                    setState(() {
+                      _services = services;
+                    });
+                  },
+                  icon: const Icon(Icons.refresh),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: _busy || _readOnly ? null : () => _edit(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Novo serviço'),
+                ),
+              ],
             ),
           ),
           if (_repository.offline)
@@ -225,19 +242,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                 padding: EdgeInsets.all(16),
                 child: Text(
                     'Sem conexão. Serviços salvos no aparelho; edição indisponível.')),
-          TextButton.icon(
-              onPressed: () async {
-                if (ApiClient.connectionUnavailable) {
-                  await ApiClient.probeConnection();
-                }
-                if (!mounted) return;
-                final services = _load();
-                setState(() {
-                  _services = services;
-                });
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Atualizar serviços')),
           if (_busy) const LinearProgressIndicator(),
           Expanded(
             child: FutureBuilder<List<Service>>(
