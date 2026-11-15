@@ -110,7 +110,11 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     setState(() => _busy = true);
     try {
       await action();
-      if (mounted) setState(() => _employees = _repository.list());
+      if (!mounted) return;
+      final employees = _repository.list();
+      setState(() {
+        _employees = employees;
+      });
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
