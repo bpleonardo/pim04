@@ -72,21 +72,14 @@ namespace api.Repositories
             var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
             var endUtc = startUtc.AddDays(1);
 
-            var configuredIntervals = employeeId.HasValue
-                ? await _context.FuncionarioDisponibilidades
-                    .AsNoTracking()
-                    .Where(item =>
-                        item.IdFuncionario == employeeId.Value &&
-                        item.DiaSemana == (int)date.DayOfWeek)
-                    .ToListAsync()
-                : [];
-
-            var employeeIds = employeeId.HasValue
-                ? [employeeId.Value]
-                : await _context.Funcionarios
-                    .Where(item => !item.IsDeleted)
-                    .Select(item => item.Id)
-                    .ToListAsync();
+            var employeeIds = await _context.Funcionarios
+                .Where(item => !item.IsDeleted && (!employeeId.HasValue || item.Id == employeeId.Value))
+                .Select(item => item.Id)
+                .ToListAsync();
+            var configuredIntervals = await _context.FuncionarioDisponibilidades
+                .AsNoTracking()
+                .Where(item => employeeIds.Contains(item.IdFuncionario) && item.DiaSemana == (int)date.DayOfWeek)
+                .ToListAsync();
 
             // Obtém agendamentos do dia para conferir funcionários ocupados em cada slot
             var busyAppointments = await _context.Agendamentos
@@ -109,19 +102,12 @@ namespace api.Repositories
                 var slotLocal = date.ToDateTime(current, DateTimeKind.Unspecified);
                 var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotLocal, tz);
 
-                var busyCount = busyAppointments
-                    .Where(a => a.DataAgendamento == slotUtc)
-                    .Select(a => a.IdFuncionario)
-                    .Distinct()
-                    .Count();
-
-                var isWithinConfiguredHours = employeeId.HasValue
-                    ? configuredIntervals.Any(interval =>
-                        current >= interval.Inicio && current < interval.Fim)
-                    : true;
-                var isAvailable = slotUtc > utcNow
-                    && isWithinConfiguredHours
-                    && busyCount < employeeIds.Count;
+                // A disponibilidade e a ocupação precisam corresponder ao mesmo funcionário.
+                var isAvailable = slotUtc > utcNow && employeeIds.Any(id =>
+                    configuredIntervals.Any(interval => interval.IdFuncionario == id
+                        && current >= interval.Inicio && current < interval.Fim)
+                    && !busyAppointments.Any(appointment =>
+                        appointment.IdFuncionario == id && appointment.DataAgendamento == slotUtc));
 
                 horarios.Add(new HorarioDTO(slotStr, isAvailable));
 

@@ -19,6 +19,7 @@ namespace api.Controllers
             return nonce.Length == 32 && nonce.All(Uri.IsHexDigit) ? nonce : null;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult> Get(
             [FromQuery] DateOnly? date,
