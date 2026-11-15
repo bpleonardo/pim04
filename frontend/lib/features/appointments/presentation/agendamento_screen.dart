@@ -51,6 +51,12 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   DateTime selectedDate = shopTime(DateTime.now());
   List<Map<String, dynamic>> timeSlots = [];
   bool busy = false;
+  bool slotsLoading = false;
+  String? slotsError;
+  bool get hasAvailableSlots =>
+      timeSlots.any((entry) => entry['available'] == true);
+  String get noSlotsMessage =>
+      'Este barbeiro não tem horários disponíveis na data selecionada. Escolha outra data ou outro barbeiro.';
   String? _bookingKey, _bookingNonce;
   @override
   void initState() {
@@ -86,35 +92,57 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
   }
 
   Future<void> loadTimeSlots() async {
-    final original = widget.appointment == null
-        ? null
-        : appointmentShopTime(widget.appointment!.scheduledAt);
-    final sameDay = original != null &&
-        original.year == selectedDate.year &&
-        original.month == selectedDate.month &&
-        original.day == selectedDate.day;
-    final originalSlot = sameDay ? shopClockLabel(original) : null;
-    if (sameDay &&
-        !shopSlotToUtc(original, original.hour, original.minute)
-            .isAfter(DateTime.now().toUtc())) {
-      timeSlots = [
-        {'slot': originalSlot, 'available': true}
-      ];
-      slot = originalSlot;
-      return;
-    }
-    api.selectedEmployeeId = employeeId;
-    timeSlots =
-        await (offlineRepo?.slots(selectedDate) ?? api.timeSlots(selectedDate));
-    slot = originalSlot;
-    if (originalSlot != null) {
-      timeSlots = [
-        for (final entry in timeSlots)
-          if (entry['slot'] != slot) entry,
-        {'slot': slot, 'available': true}
-      ];
-      timeSlots
-          .sort((a, b) => a['slot'].toString().compareTo(b['slot'].toString()));
+    if (!mounted) return;
+    setState(() {
+      slotsLoading = true;
+      slotsError = null;
+      timeSlots = [];
+      slot = null;
+    });
+    try {
+      if (employeeId == null) return;
+      final original = widget.appointment == null
+          ? null
+          : appointmentShopTime(widget.appointment!.scheduledAt);
+      final sameDay = original != null &&
+          widget.appointment!.employeeId == employeeId &&
+          original.year == selectedDate.year &&
+          original.month == selectedDate.month &&
+          original.day == selectedDate.day;
+      final originalSlot = sameDay ? shopClockLabel(original) : null;
+      List<Map<String, dynamic>> entries;
+      if (sameDay &&
+          !shopSlotToUtc(original, original.hour, original.minute)
+              .isAfter(DateTime.now().toUtc())) {
+        entries = [
+          {'slot': originalSlot, 'available': true}
+        ];
+      } else {
+        api.selectedEmployeeId = employeeId;
+        entries = await (offlineRepo?.slots(selectedDate) ??
+            api.timeSlots(selectedDate));
+        if (originalSlot != null) {
+          entries = [
+            for (final entry in entries)
+              if (entry['slot'] != originalSlot) entry,
+            {'slot': originalSlot, 'available': true}
+          ];
+          entries.sort(
+              (a, b) => a['slot'].toString().compareTo(b['slot'].toString()));
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        timeSlots = entries;
+        slot = originalSlot;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => slotsError =
+            'Não foi possível consultar os horários. Tente novamente.');
+      }
+    } finally {
+      if (mounted) setState(() => slotsLoading = false);
     }
   }
 
@@ -157,13 +185,22 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
 
   Future<void> confirm() async {
     if (busy) return;
-    if (!form.currentState!.validate() ||
-        selectedServiceIds.isEmpty ||
-        employeeId == null ||
-        slot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:
-              Text('Selecione pelo menos um serviço, o barbeiro e o horário')));
+    if (!form.currentState!.validate()) return;
+    final message = selectedServiceIds.isEmpty
+        ? 'Selecione pelo menos um serviço.'
+        : employeeId == null
+            ? 'Selecione o barbeiro.'
+            : slotsLoading
+                ? 'Aguarde a consulta dos horários.'
+                : slotsError ??
+                    (!hasAvailableSlots
+                        ? noSlotsMessage
+                        : slot == null
+                            ? 'Selecione um horário.'
+                            : null);
+    if (message != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
       return;
     }
     setState(() => busy = true);
@@ -360,22 +397,19 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                               ),
                             )
                         ],
-                        onChanged: widget.forCurrentEmployee || busy
-                            ? null
-                            : (v) async {
-                                setState(() {
-                                  employeeId = v;
-                                  slot = null;
-                                  timeSlots = [];
-                                });
-                                await loadTimeSlots();
-                              }),
+                        onChanged:
+                            widget.forCurrentEmployee || busy || slotsLoading
+                                ? null
+                                : (v) async {
+                                    setState(() => employeeId = v);
+                                    await loadTimeSlots();
+                                  }),
                     const SizedBox(height: 16),
                     ListTile(
                         title: Text(
                             'Data: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
                         trailing: const Icon(Icons.calendar_month),
-                        onTap: busy
+                        onTap: busy || slotsLoading
                             ? null
                             : () async {
                                 final firstDate = shopTime(DateTime.now());
@@ -390,30 +424,13 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                         .add(const Duration(days: 14)));
                                 if (!context.mounted) return;
                                 if (d != null) {
-                                  setState(() {
-                                    busy = true;
-                                    selectedDate = d;
-                                    slot = null;
-                                    timeSlots = [];
-                                  });
-                                  try {
-                                    await loadTimeSlots();
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                              SnackBar(content: Text('$e')));
-                                    }
-                                  } finally {
-                                    if (mounted) {
-                                      setState(() => busy = false);
-                                    }
-                                  }
+                                  setState(() => selectedDate = d);
+                                  await loadTimeSlots();
                                 }
                               }),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                        key: ValueKey(selectedDate),
+                        key: ValueKey((selectedDate, employeeId, slotsLoading)),
                         initialValue: slot,
                         decoration: const InputDecoration(labelText: 'Horário'),
                         items: [
@@ -423,10 +440,37 @@ class _AgendamentoScreenState extends State<AgendamentoScreen> {
                                   value: h['slot'].toString(),
                                   child: Text('${h['slot']}'))
                         ],
-                        onChanged: (v) => setState(() => slot = v)),
+                        onChanged: busy || slotsLoading || !hasAvailableSlots
+                            ? null
+                            : (v) => setState(() => slot = v)),
+                    if (slotsLoading) ...[
+                      const SizedBox(height: 12),
+                      const LinearProgressIndicator(),
+                      const Text('Consultando horários...'),
+                    ] else if (employeeId == null ||
+                        slotsError != null ||
+                        !hasAvailableSlots)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(employeeId == null
+                              ? 'Selecione um barbeiro para consultar os horários.'
+                              : slotsError ?? noSlotsMessage),
+                        ),
+                      ),
+                    if (slotsError != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: busy ? null : loadTimeSlots,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Tentar novamente'),
+                        ),
+                      ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                        onPressed: busy ? null : confirm,
+                        onPressed: busy || slotsLoading ? null : confirm,
                         child: Text(
                             busy ? 'Aguarde...' : 'Confirmar agendamento')),
                   ],
