@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/core/shop_time.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -16,6 +17,7 @@ class SyncApi extends BarbershopApi {
   final requests = <String, Map<String, dynamic>>{};
   final nonces = <String>[];
   int mutations = 0;
+  final slotDates = <DateTime>[];
   @override
   Future<List<Service>> services() async {
     if (failure != null) throw failure!;
@@ -24,6 +26,7 @@ class SyncApi extends BarbershopApi {
 
   @override
   Future<List<Map<String, dynamic>>> timeSlots(DateTime date) async {
+    slotDates.add(date);
     if (failure != null) throw failure!;
     return [
       {'slot': '10:00', 'available': false},
@@ -211,5 +214,21 @@ void main() {
     await AppDatabase.upgrade(db, 5, 6);
     expect((await db.query('daily_agenda')).single['json'], 'dados anteriores');
     expect(await db.query('pending_appointments'), isEmpty);
+  });
+  test(
+      'Agenda passada prepara a grade de hoje sem consultar horários no passado',
+      () async {
+    api.failure = null;
+    final now = shopTime(DateTime.now());
+    final today = DateTime.utc(now.year, now.month, now.day);
+    await repo.warmUp(today.subtract(const Duration(days: 3)));
+    expect(api.slotDates, [today]);
+    api.slotDates.clear();
+    await repo.warmUp(today.add(const Duration(days: 30)));
+    expect(api.slotDates, [today]);
+    api.slotDates.clear();
+    final tomorrow = today.add(const Duration(days: 1));
+    await repo.warmUp(tomorrow);
+    expect(api.slotDates, [tomorrow]);
   });
 }

@@ -87,9 +87,16 @@ class OfflineBookingRepository {
       await store.read('slot_template') != null;
 
   Future<void> warmUp(DateTime date) async {
+    final now = shopTime(DateTime.now());
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final requested = DateTime.utc(date.year, date.month, date.day);
+    final bookingDate = requested.isBefore(today) ||
+            requested.isAfter(today.add(const Duration(days: 14)))
+        ? today
+        : requested;
     await Future.wait([
       services().then<void>((_) {}).catchError((Object _) {}),
-      slots(date).then<void>((_) {}).catchError((Object _) {}),
+      slots(bookingDate).then<void>((_) {}).catchError((Object _) {}),
     ]);
   }
 
