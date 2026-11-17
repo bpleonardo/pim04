@@ -42,6 +42,9 @@ class ApiConfig {
   }
 
   static Future<void> save(String value) async {
+    if (AppPlatform.web) {
+      throw UnsupportedError('A URL da API é fixa na versão Web.');
+    }
     final normalized = value.trim().replaceFirst(RegExp(r'/$'), '');
     if (!isValidUrl(normalized)) {
       throw const FormatException(

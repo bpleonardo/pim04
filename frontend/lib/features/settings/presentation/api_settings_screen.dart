@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/core/responsive/app_platform.dart';
 import 'package:flutter/material.dart';
 
 import 'package:barbearia_frontend/app/layout/desktop_layout.dart';
@@ -41,7 +42,7 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
   }
 
   Future<void> save() async {
-    if (busy) return;
+    if (busy || AppPlatform.web) return;
     setState(() {
       busy = true;
       error = null;
@@ -85,7 +86,13 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              if (editing)
+              if (AppPlatform.web) ...[
+                const Text('A URL da API é fixa na versão Web.'),
+                const SizedBox(height: 12),
+                SelectableText(ApiConfig.baseUrl.isEmpty
+                    ? Uri.base.origin
+                    : ApiConfig.baseUrl),
+              ] else if (editing)
                 TextField(
                   controller: controller,
                   enabled: !busy,
@@ -125,19 +132,20 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
                 const Text('Verificando conexão com o servidor...'),
               ],
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  OutlinedButton(
-                    onPressed: busy || !editing ? null : cancelEditing,
-                    child: const Text('Cancelar'),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton(
-                    onPressed: busy || !editing ? null : save,
-                    child: const Text('Salvar'),
-                  ),
-                ],
-              ),
+              if (!AppPlatform.web)
+                Row(
+                  children: [
+                    OutlinedButton(
+                      onPressed: busy || !editing ? null : cancelEditing,
+                      child: const Text('Cancelar'),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton(
+                      onPressed: busy || !editing ? null : save,
+                      child: const Text('Salvar'),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),

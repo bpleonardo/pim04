@@ -57,11 +57,8 @@ class _DesktopLayoutState extends State<DesktopLayout> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 children: [
-                  _navigationItem(AppRouter.home, 'Agendamentos'),
-                  _navigationItem(AppRouter.catalog, 'Serviços'),
-                  _navigationItem(AppRouter.employees, 'Funcionários'),
-                  _navigationItem(AppRouter.availability, 'Disponibilidade'),
-                  _navigationItem(AppRouter.dashboard, 'Dashboard'),
+                  for (final (route, label) in AppRouter.adminDestinations)
+                    _navigationItem(route, label),
                 ],
               ),
             ),

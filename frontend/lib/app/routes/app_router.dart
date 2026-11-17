@@ -22,6 +22,14 @@ class AppRouter {
   static const employees = '/funcionarios';
   static const availability = '/disponibilidade';
 
+  static const adminDestinations = [
+    (home, 'Agendamentos'),
+    (catalog, 'Serviços'),
+    (employees, 'Funcionários'),
+    (availability, 'Disponibilidade'),
+    (dashboard, 'Dashboard'),
+  ];
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     if (!AppPlatform.mobile &&
         settings.name != '/' &&

@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/core/responsive/app_platform.dart';
 import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:barbearia_frontend/app/routes/app_router.dart';
@@ -124,27 +125,20 @@ class _AgendaScreenState extends State<AgendaScreen> {
               padding: EdgeInsets.all(24),
               child: Text('N&E', style: TextStyle(fontSize: 24)),
             ),
-            ListTile(
-              selected: true,
-              title: const Text('Agendamentos'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text('Serviços'),
-              onTap: () => openMenuPage(AppRouter.catalog),
-            ),
-            ListTile(
-              title: const Text('Funcionários'),
-              onTap: () => openMenuPage(AppRouter.employees),
-            ),
-            ListTile(
-              title: const Text('Disponibilidade'),
-              onTap: () => openMenuPage(AppRouter.availability),
-            ),
-            ListTile(
-              title: const Text('Dashboard'),
-              onTap: () => openMenuPage(AppRouter.dashboard),
-            ),
+            for (final (route, label) in AppRouter.adminDestinations)
+              ListTile(
+                selected: route == AppRouter.home,
+                title: Text(label),
+                onTap: route == AppRouter.home
+                    ? () => Navigator.pop(context)
+                    : () => openMenuPage(route),
+              ),
+            if (AppPlatform.native)
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Configurações'),
+                onTap: () => openMenuPage(AppRouter.settingsRoute),
+              ),
             ListTile(
               leading: const Icon(Icons.refresh),
               title: const Text('Atualizar'),
