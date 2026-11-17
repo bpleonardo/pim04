@@ -211,8 +211,10 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 IconButton(
                   tooltip: 'Atualizar serviços',
@@ -228,7 +230,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                   },
                   icon: const Icon(Icons.refresh),
                 ),
-                const SizedBox(width: 8),
                 FilledButton.icon(
                   onPressed: _busy || _readOnly ? null : () => _edit(),
                   icon: const Icon(Icons.add),
@@ -264,8 +265,46 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                     final service = services[index];
                     final price =
                         service.price.toStringAsFixed(2).replaceAll('.', ',');
-                    return Card(
-                      child: ListTile(
+                    return LayoutBuilder(builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 560;
+                      final actions =
+                          Wrap(alignment: WrapAlignment.end, children: [
+                        if (!AppPlatform.mobile)
+                          IconButton(
+                              tooltip: 'Histórico de preços de ${service.name}',
+                              onPressed: _busy || _readOnly
+                                  ? null
+                                  : () => _priceHistory(service),
+                              icon: const Icon(Icons.history)),
+                        IconButton(
+                          onPressed:
+                              _busy || _readOnly ? null : () => _edit(service),
+                          tooltip: 'Editar ${service.name}',
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                        IconButton(
+                          onPressed: _busy || _readOnly
+                              ? null
+                              : () => _change(() => _repository.setEnabled(
+                                  service, !service.enabled)),
+                          tooltip: service.enabled
+                              ? 'Desabilitar serviço'
+                              : 'Reativar serviço',
+                          icon: Icon(service.enabled
+                              ? Icons.block
+                              : Icons.check_circle_outline),
+                        ),
+                        IconButton(
+                          onPressed: _busy || _readOnly || service.linked
+                              ? null
+                              : () => _delete(service),
+                          tooltip: service.linked
+                              ? 'Serviço vinculado a agendamentos'
+                              : 'Excluir ${service.name}',
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ]);
+                      final details = ListTile(
                         title: Text(service.name),
                         subtitle: Text([
                           if (service.description case final String description)
@@ -273,49 +312,24 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                           'R\$ $price',
                           if (!service.enabled) 'Desabilitado',
                         ].join('\n')),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!AppPlatform.mobile)
-                              IconButton(
-                                  tooltip:
-                                      'Histórico de preços de ${service.name}',
-                                  onPressed: _busy || _readOnly
-                                      ? null
-                                      : () => _priceHistory(service),
-                                  icon: const Icon(Icons.history)),
-                            IconButton(
-                              onPressed: _busy || _readOnly
-                                  ? null
-                                  : () => _edit(service),
-                              tooltip: 'Editar ${service.name}',
-                              icon: const Icon(Icons.edit_outlined),
-                            ),
-                            IconButton(
-                              onPressed: _busy || _readOnly
-                                  ? null
-                                  : () => _change(() => _repository.setEnabled(
-                                      service, !service.enabled)),
-                              tooltip: service.enabled
-                                  ? 'Desabilitar serviço'
-                                  : 'Reativar serviço',
-                              icon: Icon(service.enabled
-                                  ? Icons.block
-                                  : Icons.check_circle_outline),
-                            ),
-                            IconButton(
-                              onPressed: _busy || _readOnly || service.linked
-                                  ? null
-                                  : () => _delete(service),
-                              tooltip: service.linked
-                                  ? 'Serviço vinculado a agendamentos'
-                                  : 'Excluir ${service.name}',
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                        trailing: compact ? null : actions,
+                      );
+                      return Card(
+                          child: compact
+                              ? Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                      details,
+                                      Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              8, 0, 8, 8),
+                                          child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: actions)),
+                                    ])
+                              : details);
+                    });
                   },
                 );
               },

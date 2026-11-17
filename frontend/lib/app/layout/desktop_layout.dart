@@ -23,6 +23,7 @@ class DesktopLayout extends StatefulWidget {
 }
 
 class _DesktopLayoutState extends State<DesktopLayout> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   late String currentRoute;
   late Widget currentContent;
 
@@ -34,6 +35,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
   }
 
   void open(String route) {
+    _scaffoldKey.currentState?.closeDrawer();
     if (route == currentRoute) return;
     setState(() {
       currentRoute = route;
@@ -117,83 +119,99 @@ class _DesktopLayoutState extends State<DesktopLayout> {
     final scope = DesktopLayoutScope(
       open: open,
       route: currentRoute,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 216,
-                  child: Material(
-                    color: Theme.of(context).colorScheme.surface,
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: Color(0xFF303030)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: navigation(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Material(
-                    color: Theme.of(context).colorScheme.surface,
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: Color(0xFF303030)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        const Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: ThemeToggleButton(),
-                          ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 760;
+        return Scaffold(
+          key: _scaffoldKey,
+          appBar: wide
+              ? null
+              : AppBar(
+                  title: Text(title), actions: const [ThemeToggleButton()]),
+          drawer: wide ? null : Drawer(child: navigation()),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          body: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(wide ? 12 : 0),
+              child: Row(
+                children: [
+                  if (wide)
+                    SizedBox(
+                      width: 216,
+                      child: Material(
+                        color: Theme.of(context).colorScheme.surface,
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: Color(0xFF303030)),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        if (currentRoute != AppRouter.home) ...[
-                          SizedBox(
-                            height: 56,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  tooltip: 'Voltar',
-                                  onPressed: () => open(AppRouter.home),
-                                  icon: const Icon(Icons.arrow_back),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
+                        clipBehavior: Clip.antiAlias,
+                        child: navigation(),
+                      ),
+                    ),
+                  if (wide) const SizedBox(width: 12),
+                  Expanded(
+                    key: const ValueKey('admin-content'),
+                    child: Material(
+                      color: Theme.of(context).colorScheme.surface,
+                      shape: wide
+                          ? RoundedRectangleBorder(
+                              side: const BorderSide(color: Color(0xFF303030)),
+                              borderRadius: BorderRadius.circular(16),
+                            )
+                          : null,
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          if (wide)
+                            const Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: ThemeToggleButton(),
+                              ),
+                            ),
+                          if (wide && currentRoute != AppRouter.home) ...[
+                            SizedBox(
+                              height: 56,
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Voltar',
+                                    onPressed: () => open(AppRouter.home),
+                                    icon: const Icon(Icons.arrow_back),
                                   ),
-                                  child: Text(
-                                    title,
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: Text(
+                                      title,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1),
+                          ],
+                          Expanded(
+                            key: const ValueKey('page-content'),
+                            child: KeyedSubtree(
+                              key: ValueKey(currentRoute),
+                              child: currentContent,
                             ),
                           ),
-                          const Divider(height: 1),
                         ],
-                        Expanded(
-                          child: KeyedSubtree(
-                            key: ValueKey(currentRoute),
-                            child: currentContent,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
     return scope;
   }

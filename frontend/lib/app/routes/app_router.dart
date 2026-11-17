@@ -31,10 +31,7 @@ class AppRouter {
   ];
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    if (!AppPlatform.mobile &&
-        settings.name != '/' &&
-        settings.name != login &&
-        settings.name != home) {
+    if (!AppPlatform.mobile && settings.name != '/' && settings.name != login) {
       return _SmoothPageRoute<void>(
         builder: (_) => DesktopLayout(
           initialRoute: settings.name!,

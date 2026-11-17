@@ -192,7 +192,8 @@ void main() {
         (AppRouter.onGenerateRoute(const RouteSettings(name: AppRouter.home))
                 as MaterialPageRoute<void>)
             .builder(context),
-        isA<AgendaScreen>());
+        isA<DesktopLayout>().having((layout) => layout.initialContent,
+            'agenda integrada', isA<AgendaScreen>()));
     debugDefaultTargetPlatformOverride = null;
   });
 

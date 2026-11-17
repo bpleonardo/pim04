@@ -94,23 +94,39 @@ class _AgendaScreenState extends State<AgendaScreen> {
           border: Border.all(color: const Color(0xFF303030)),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
-          children: [
-            Expanded(
-                child: Text(shopDateLabel(selectedDate),
-                    style: Theme.of(context).textTheme.titleMedium)),
-            IconButton(
-                tooltip: 'Dia anterior',
-                onPressed: () => stepDate(-1),
-                icon: const Icon(Icons.chevron_left)),
-            OutlinedButton(
-                onPressed: pickDate, child: const Text('Selecionar')),
-            IconButton(
-                tooltip: 'Próximo dia',
-                onPressed: () => stepDate(1),
-                icon: const Icon(Icons.chevron_right)),
-          ],
-        ),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final controls = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                  tooltip: 'Dia anterior',
+                  onPressed: () => stepDate(-1),
+                  icon: const Icon(Icons.chevron_left)),
+              if (constraints.maxWidth < 320)
+                IconButton(
+                    tooltip: 'Selecionar data',
+                    onPressed: pickDate,
+                    icon: const Icon(Icons.calendar_month))
+              else
+                OutlinedButton(
+                    onPressed: pickDate, child: const Text('Selecionar')),
+              IconButton(
+                  tooltip: 'Próximo dia',
+                  onPressed: () => stepDate(1),
+                  icon: const Icon(Icons.chevron_right)),
+            ],
+          );
+          final date = Text(shopDateLabel(selectedDate),
+              style: Theme.of(context).textTheme.titleMedium);
+          return constraints.maxWidth < 480
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                      date,
+                      Align(alignment: Alignment.centerRight, child: controls),
+                    ])
+              : Row(children: [Expanded(child: date), controls]);
+        }),
       );
 
   void openMenuPage(String route) {
@@ -241,7 +257,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     title: const Text('Agendamentos'),
                     actions: const [ThemeToggleButton()],
                   ),
-            drawer: wide ? null : Drawer(child: mobileNavigation()),
+            drawer: wide || widget.embedded
+                ? null
+                : Drawer(child: mobileNavigation()),
             floatingActionButton: FloatingActionButton(
               tooltip: 'Novo agendamento',
               shape: const CircleBorder(

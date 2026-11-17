@@ -196,8 +196,24 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 return ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: employees
-                      .map((employee) => Card(
-                            child: ListTile(
+                      .map((employee) =>
+                          LayoutBuilder(builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 560;
+                            final actions =
+                                Wrap(alignment: WrapAlignment.end, children: [
+                              IconButton(
+                                tooltip: 'Editar',
+                                onPressed: _busy ? null : () => _edit(employee),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                tooltip: 'Excluir',
+                                onPressed:
+                                    _busy ? null : () => _delete(employee),
+                                icon: const Icon(Icons.delete_outline),
+                              ),
+                            ]);
+                            final details = ListTile(
                               title: Text(employee.name),
                               subtitle: employee.isDeleted
                                   ? const Text('Excluído')
@@ -206,26 +222,28 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                               leading: employee.isDeleted
                                   ? const Icon(Icons.person_off_outlined)
                                   : const Icon(Icons.person_outline),
-                              trailing: employee.isDeleted
+                              trailing: employee.isDeleted || compact
                                   ? null
-                                  : Wrap(children: [
-                                      IconButton(
-                                        tooltip: 'Editar',
-                                        onPressed: _busy
-                                            ? null
-                                            : () => _edit(employee),
-                                        icon: const Icon(Icons.edit_outlined),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Excluir',
-                                        onPressed: _busy
-                                            ? null
-                                            : () => _delete(employee),
-                                        icon: const Icon(Icons.delete_outline),
-                                      ),
-                                    ]),
-                            ),
-                          ))
+                                  : actions,
+                            );
+                            return Card(
+                                child: compact && !employee.isDeleted
+                                    ? Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                            details,
+                                            Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        8, 0, 8, 8),
+                                                child: Align(
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: actions)),
+                                          ])
+                                    : details);
+                          }))
                       .toList(),
                 );
               },
