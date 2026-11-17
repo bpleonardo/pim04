@@ -61,6 +61,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 children: [
                   for (final (route, label) in AppRouter.adminDestinations)
                     _navigationItem(route, label),
+                  if (AppPlatform.web) logoutButton(),
                 ],
               ),
             ),
@@ -70,30 +71,32 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                 title: const Text('Configurações'),
                 onTap: () => open(AppRouter.settingsRoute),
               ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Sair'),
-              onTap: () async {
-                try {
-                  await ApiClient.logout();
-                } catch (error) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Não foi possível sair. $error')),
-                    );
-                  }
-                  return;
-                }
-                if (!mounted) return;
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRouter.login,
-                  (_) => false,
-                );
-              },
-            ),
+            if (AppPlatform.native) logoutButton(),
           ],
         ),
+      );
+
+  Widget logoutButton() => ListTile(
+        leading: const Icon(Icons.logout),
+        title: const Text('Sair'),
+        onTap: () async {
+          try {
+            await ApiClient.logout();
+          } catch (error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Não foi possível sair. $error')),
+              );
+            }
+            return;
+          }
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRouter.login,
+            (_) => false,
+          );
+        },
       );
 
   Widget _navigationItem(String route, String label) => ListTile(

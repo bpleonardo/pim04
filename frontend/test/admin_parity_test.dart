@@ -1,3 +1,5 @@
+import 'package:barbearia_frontend/core/network/api_client.dart';
+import 'package:barbearia_frontend/features/auth/models/user.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -96,6 +98,38 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
       expect(find.text('Salvar'), findsOneWidget);
     }
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('Sair aparece junto às opções do menu e encerra a sessão',
+      (tester) async {
+    tester.view.physicalSize = const Size(412, 924);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(ApiClient.signOut);
+    ApiClient.token = 'test-access';
+    ApiClient.user = const User(id: 'test', name: 'Teste', login: 'teste');
+    await tester.pumpWidget(MaterialApp(
+        home: const DesktopLayout(
+            initialRoute: AppRouter.home, initialContent: SizedBox.shrink()),
+        routes: {
+          AppRouter.login: (_) => const Scaffold(body: Text('Login')),
+        }));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    final exit = find.text('Sair');
+    expect(exit, findsOneWidget);
+    if (kIsWeb) {
+      expect(tester.getRect(exit).top,
+          lessThan(tester.getRect(find.text('Dashboard')).bottom + 130));
+    }
+    expect(exit.hitTestable(), findsOneWidget);
+    await tester.tap(exit);
+    await tester.pumpAndSettle();
+    expect(ApiClient.token, isNull);
+    expect(ApiClient.user, isNull);
+    expect(find.text('Login'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
