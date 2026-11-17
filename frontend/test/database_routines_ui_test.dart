@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/features/dashboard/models/period_report.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,15 +16,19 @@ class Reports extends AppointmentRepository {
   int calls = 0;
   bool cached = false;
   @override
-  Future<DailyReport> dailyReport(DateTime date) async {
+  Future<PeriodReport> periodReport(DateTime date, String period) async {
     calls++;
-    return DailyReport(
-        completedRevenue: 70,
-        completedCount: 2,
-        pendingRevenue: 30,
-        activeCount: 3,
-        serviceCounts: {'Cabelo': 2, 'Barba (desabilitado)': 2},
-        cached: cached);
+    return PeriodReport(
+        startDate: date,
+        endDate: date,
+        revenueByDay: {date: 70},
+        summary: DailyReport(
+            completedRevenue: 70,
+            completedCount: 2,
+            pendingRevenue: 30,
+            activeCount: 3,
+            serviceCounts: {'Cabelo': 2, 'Barba (desabilitado)': 2},
+            cached: cached));
   }
 }
 

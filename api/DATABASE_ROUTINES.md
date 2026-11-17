@@ -77,3 +77,30 @@ Os cenários cobrem inserção sem auditoria, mudança real, SQL direto, preço 
 No frontend, execute `flutter analyze` e `flutter test`. Os testes também verificam a tela de histórico, os valores do dashboard, o botão de atualização e a conversão dos dados legados offline.
 
 Referências técnicas: [CREATE TRIGGER](https://www.postgresql.org/docs/current/sql-createtrigger.html), [funções de trigger](https://www.postgresql.org/docs/current/plpgsql-trigger.html) e [CREATE PROCEDURE](https://www.postgresql.org/docs/current/sql-createprocedure.html), na documentação oficial do PostgreSQL.
+
+## Relatórios por período
+
+O dashboard utiliza `GET /api/reports?date=2026-11-16&period=weekly&mine=true`.
+Os valores aceitos de `period` são `daily`, `weekly` e `monthly`; `date` é obrigatório.
+A semana começa na segunda-feira e o mês no dia 1, ambos até a data informada,
+preservando o comportamento dos seletores. `mine=true` restringe ao funcionário
+identificado pelo JWT; sem essa flag, o painel consulta todos os funcionários.
+
+A resposta inclui `startDate`, `endDate`, `summary` (totais e ranking calculados
+pela API) e `revenueByDay` (série para o gráfico, incluindo dias com receita zero).
+Uma consulta SQL agrega o período inteiro, sem um loop de chamadas diárias.
+Valores históricos, cancelamentos, serviços desabilitados e os limites de dias
+no fuso de São Paulo seguem as regras do resumo diário. A rota autenticada
+`/api/reports/daily` e a procedure existente continuam disponíveis por compatibilidade.
+Não é necessária uma nova migração para esse endpoint.
+
+No mobile, cada período consultado online fica no SQLite. Sem conexão, o app lê
+esse cache; se necessário, também consegue montar o período a partir dos resumos
+diários legados já salvos, sem emitir requisições por dia. Os testes em
+`DatabaseRoutinesChecks`, `period_reports_test.dart` e `offline_booking_test.dart`
+cobrem os totais, os limites dos períodos e a quantidade de chamadas.
+
+Ao consultar a agenda histórica, a preparação do cache de novos agendamentos
+usa uma data dentro da janela de horários válida (hoje até 14 dias), em vez de
+consultar horários disponíveis no passado. A API continua aceitando a consulta
+de agendamentos antigos e recusando novos horários em datas passadas.

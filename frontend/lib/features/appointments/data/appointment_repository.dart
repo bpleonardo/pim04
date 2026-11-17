@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/features/dashboard/models/period_report.dart';
 import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
 import 'dart:convert';
 import 'package:barbearia_frontend/features/appointments/data/offline_booking_repository.dart';
@@ -23,8 +24,12 @@ class DailyAgenda {
 }
 
 class AppointmentRepository {
-  final BarbershopApi api = BarbershopApi();
-  final OfflineBookingRepository bookings = OfflineBookingRepository();
+  AppointmentRepository(
+      {BarbershopApi? api, OfflineBookingRepository? bookings})
+      : api = api ?? BarbershopApi(),
+        bookings = bookings ?? OfflineBookingRepository();
+  final BarbershopApi api;
+  final OfflineBookingRepository bookings;
   bool offline = false;
   List<Appointment> _lastAppointments = [];
 
@@ -49,6 +54,54 @@ class AppointmentRepository {
       return cached
           .map((a) => Appointment.fromJson(Map<String, dynamic>.from(a)))
           .toList();
+    }
+  }
+
+  Future<PeriodReport> periodReport(DateTime date, String period) async {
+    if (!AppDatabase.available) return api.periodReport(date, period);
+    final store = bookings.store;
+    final key =
+        'period_summary:$period:${date.toIso8601String().split('T').first}';
+    try {
+      if (ApiClient.connectionUnavailable) {
+        throw const ApiException('Sem conexão');
+      }
+      final report = await api.periodReport(date, period, mine: true);
+      await store.write(key, report.toJson());
+      return report;
+    } on ApiException catch (error) {
+      if (!error.retryable) rethrow;
+      final cached = await store.read(key);
+      if (cached != null) {
+        return PeriodReport.fromJson(Map<String, dynamic>.from(cached as Map),
+            cached: true);
+      }
+      final end = DateTime(date.year, date.month, date.day);
+      final start = switch (period) {
+        'weekly' => end.subtract(Duration(days: end.weekday - 1)),
+        'monthly' => DateTime(end.year, end.month),
+        _ => end,
+      };
+      final days = <DateTime, DailyReport>{};
+      for (var day = start;
+          !day.isAfter(end);
+          day = DateTime(day.year, day.month, day.day + 1)) {
+        final dayKey = day.toIso8601String().split('T').first;
+        final summary = await store.read('daily_summary:$dayKey');
+        if (summary != null) {
+          days[day] = DailyReport.fromJson(
+              Map<String, dynamic>.from(summary as Map),
+              cached: true);
+        } else {
+          final rows = await store.read('report:$dayKey') as List?;
+          if (rows == null) rethrow;
+          days[day] = DailyReport.fromAppointments(rows
+              .map((item) =>
+                  Appointment.fromJson(Map<String, dynamic>.from(item)))
+              .toList());
+        }
+      }
+      return PeriodReport.fromCachedDays(days);
     }
   }
 

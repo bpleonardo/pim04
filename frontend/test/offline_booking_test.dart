@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart';
+import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
+import 'package:barbearia_frontend/features/dashboard/models/period_report.dart';
+import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,6 +75,26 @@ class SyncApi extends BarbershopApi {
     expect(payload['expectedRevision'], 1);
     mutations++;
     return {'id': id, 'revision': 2, 'status': payload['status']};
+  }
+}
+
+class PeriodApi extends SyncApi {
+  int reportCalls = 0;
+  @override
+  Future<PeriodReport> periodReport(DateTime date, String period,
+      {bool mine = false}) async {
+    reportCalls++;
+    expect(mine, isTrue);
+    return PeriodReport(
+        startDate: date,
+        endDate: date,
+        summary: const DailyReport(
+            completedRevenue: 50,
+            completedCount: 1,
+            pendingRevenue: 30,
+            activeCount: 2,
+            serviceCounts: {'Cabelo': 2}),
+        revenueByDay: {date: 50});
   }
 }
 
@@ -230,5 +254,37 @@ void main() {
     final tomorrow = today.add(const Duration(days: 1));
     await repo.warmUp(tomorrow);
     expect(api.slotDates, [tomorrow]);
+  });
+  test(
+      'Relatórios mobile usam uma chamada e conservam cache de períodos e resumos legados',
+      () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      final reportsApi = PeriodApi();
+      final reports = AppointmentRepository(api: reportsApi, bookings: repo);
+      final date = DateTime(2026, 11, 16);
+      final online = await reports.periodReport(date, 'monthly');
+      expect(online.summary.completedRevenue, 50);
+      expect(reportsApi.reportCalls, 1);
+      ApiClient.connectionUnavailable = true;
+      final cached = await reports.periodReport(date, 'monthly');
+      expect(cached.summary.completedRevenue, 50);
+      expect(cached.summary.cached, isTrue);
+      expect(reportsApi.reportCalls, 1);
+      for (var day = 9; day <= 15; day++) {
+        await repo.store.write(
+            'daily_summary:2026-11-${day.toString().padLeft(2, '0')}',
+            online.summary.toJson());
+      }
+      final legacy =
+          await reports.periodReport(DateTime(2026, 11, 15), 'weekly');
+      expect(legacy.summary.completedRevenue, 350);
+      expect(legacy.summary.completedCount, 7);
+      expect(legacy.summary.cached, isTrue);
+      expect(legacy.revenueByDay.length, 7);
+      expect(reportsApi.reportCalls, 1);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }

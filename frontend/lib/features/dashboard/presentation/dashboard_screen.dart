@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:barbearia_frontend/core/shop_time.dart';
 import 'package:barbearia_frontend/features/appointments/data/appointment_repository.dart';
-import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
+import 'package:barbearia_frontend/features/dashboard/models/period_report.dart';
 
 enum _Period { today, week, month }
 
@@ -21,28 +21,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   var _period = _Period.today;
   late var _dashboard = _load();
 
-  Future<Map<DateTime, DailyReport>> _load() async {
-    final today = shopTime(DateTime.now());
-    final start = switch (_period) {
-      _Period.today => today.day,
-      _Period.week => today.day - today.weekday + 1,
-      _Period.month => 1,
-    };
-    final days = [
-      for (var day = start; day <= today.day; day++)
-        DateTime.utc(today.year, today.month, day),
-    ];
-
-    final results = <DateTime, DailyReport>{};
-    // A API devolve um dia por chamada. Limita as consultas simultâneas.
-    for (var offset = 0; offset < days.length; offset += 7) {
-      final batch = await Future.wait(days.skip(offset).take(7).map(
-            (day) async => MapEntry(day, await _repository.dailyReport(day)),
-          ));
-      results.addEntries(batch);
-    }
-    return results;
-  }
+  Future<PeriodReport> _load() => _repository.periodReport(
+        shopTime(DateTime.now()),
+        switch (_period) {
+          _Period.today => 'daily',
+          _Period.week => 'weekly',
+          _Period.month => 'monthly'
+        },
+      );
 
   void _refresh() {
     final dashboard = _load();
@@ -61,26 +47,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '${sign}R\$ $whole,$decimals';
   }
 
-  Widget _summary(Map<DateTime, DailyReport> agenda) {
+  Widget _summary(PeriodReport report) {
     final theme = Theme.of(context);
-    final realizedByDay = <DateTime, double>{};
-    final serviceCounts = <String, int>{};
-    var realized = 0.0;
-    var pending = 0.0;
-    var completedCount = 0;
-    var activeCount = 0;
-    for (final entry in agenda.entries) {
-      final report = entry.value;
-      realized += report.completedRevenue;
-      pending += report.pendingRevenue;
-      completedCount += report.completedCount;
-      activeCount += report.activeCount;
-      realizedByDay[entry.key] = report.completedRevenue;
-      for (final service in report.serviceCounts.entries) {
-        serviceCounts.update(service.key, (count) => count + service.value,
-            ifAbsent: () => service.value);
-      }
-    }
+    final realizedByDay = report.revenueByDay;
+    final serviceCounts = report.summary.serviceCounts;
+    final realized = report.summary.completedRevenue;
+    final pending = report.summary.pendingRevenue;
+    final completedCount = report.summary.completedCount;
+    final activeCount = report.summary.activeCount;
 
     final ranking = serviceCounts.entries.toList()
       ..sort((a, b) {
@@ -107,11 +81,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (agenda.values.any((report) => report.cached))
+        if (report.summary.cached)
           const Text(
               'Sem conexão. Indicadores calculados com os dados salvos; podem estar desatualizados.'),
         Text(
-            '${shopDateLabel(agenda.keys.first)} até ${shopDateLabel(agenda.keys.last)}'),
+            '${shopDateLabel(report.startDate)} até ${shopDateLabel(report.endDate)}'),
         const SizedBox(height: 12),
         LayoutBuilder(builder: (context, constraints) {
           final columns = constraints.maxWidth >= 700 ? 2 : 1;

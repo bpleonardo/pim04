@@ -88,6 +88,34 @@ await using (var transaction = await context.Database.BeginTransactionAsync())
     Check((await reports.GetDaily(date, null)).CompletedRevenue == 70, "Alterar preço do catálogo não pode recalcular vendas históricas.");
     await context.Servicos.Where(item => item.Id == beard.Id).ExecuteUpdateAsync(update => update.SetProperty(item => item.Ativo, false));
     Check((await reports.GetDaily(date, null)).ServiceCounts.ContainsKey(beard.Nome + " (desabilitado)"), "Ranking deve identificar serviço desabilitado.");
+    var period = await reports.GetPeriod(date, "daily", null);
+    Check(period.Summary == (await reports.GetDaily(date, null)) with { ServiceCounts = period.Summary.ServiceCounts },
+        "Totais do período diário devem corresponder à procedure existente.");
+    Check(period.RevenueByDay.Length == 1 && period.RevenueByDay[0].Revenue == 70, "Série diária incorreta.");
+    var weekly = await reports.GetPeriod(date, "weekly", null);
+    Check(weekly.StartDate == new DateOnly(2026, 11, 9) && weekly.EndDate == date && weekly.RevenueByDay.Length == 7,
+        "A semana deve começar na segunda-feira, preenchendo dias sem atendimentos.");
+    Check(weekly.Summary.CompletedRevenue == 370 && weekly.Summary.CompletedCount == 4 && weekly.Summary.ActiveCount == 5,
+        "O resumo semanal deve respeitar cancelamentos, limites de dias e valores nulos.");
+    Check(weekly.RevenueByDay.Sum(item => item.Revenue) == weekly.Summary.CompletedRevenue,
+        "O gráfico precisa corresponder ao total realizado.");
+    var monthly = await reports.GetPeriod(date, "monthly", employee.Id);
+    Check(monthly.StartDate == new DateOnly(2026, 11, 1) && monthly.RevenueByDay.Length == 15
+        && monthly.Summary.CompletedRevenue == 350, "Resumo mensal filtrado por funcionário incorreto.");
+    Check(monthly.Summary.ServiceCounts.ContainsKey(beard.Nome + " (desabilitado)"), "Serviço desabilitado ausente no relatório do período.");
+    var noData = await reports.GetPeriod(date, "monthly", Guid.NewGuid());
+    Check(noData.Summary.ActiveCount == 0 && noData.RevenueByDay.All(item => item.Revenue == 0), "Período vazio deve manter todos os dias zerados.");
+    var nextMonth = await reports.GetPeriod(new DateOnly(2026, 12, 1), "weekly", null);
+    Check(nextMonth.StartDate == new DateOnly(2026, 11, 30) && nextMonth.RevenueByDay.Length == 2,
+        "Semana atravessando o mês não pode perder dias.");
+    try { await reports.GetPeriod(date, "invalid", null); throw new Exception("Período inválido foi aceito."); }
+    catch (api.Exceptions.ValidationException error) when (error.Code == "INVALID_PERIOD") { }
+    var appointments = new AgendamentosService(new AgendamentosRepository(context), new ClientesRepository(context), new ServicosRepository(context));
+    Check((await appointments.GetAll(date, employee.Id)).Length == 3, "Agenda histórica deve aceitar consulta sem INVALID_DATE.");
+    var timezone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+    var yesterday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timezone)).AddDays(-1);
+    try { await new HorariosService(new HorariosRepository(context)).GetHorariosDisponiveis(yesterday); throw new Exception("Novos agendamentos no passado foram liberados."); }
+    catch (api.Exceptions.ValidationException error) when (error.Code == "INVALID_DATE") { }
     await transaction.RollbackAsync();
 }
 context.ChangeTracker.Clear();

@@ -1,3 +1,4 @@
+import 'package:barbearia_frontend/features/dashboard/models/period_report.dart';
 import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
 import 'package:barbearia_frontend/features/catalog/models/service_price_change.dart';
 import 'package:barbearia_frontend/features/catalog/models/service.dart';
@@ -6,7 +7,8 @@ import 'package:barbearia_frontend/features/appointments/models/appointment.dart
 import 'package:barbearia_frontend/core/network/api_client.dart';
 
 class BarbershopApi {
-  final ApiClient _client = ApiClient();
+  BarbershopApi({ApiClient? client}) : _client = client ?? ApiClient();
+  final ApiClient _client;
   String? selectedEmployeeId;
   Future<Map<String, dynamic>> login(String login, String password) async =>
       Map<String, dynamic>.from(await _client.request('POST', '/api/Login',
@@ -29,6 +31,17 @@ class BarbershopApi {
           .map((item) =>
               ServicePriceChange.fromJson(Map<String, dynamic>.from(item)))
           .toList();
+  Future<PeriodReport> periodReport(DateTime date, String period,
+      {bool mine = false}) async {
+    final query = Uri(queryParameters: {
+      'date': date.toIso8601String().split('T').first,
+      'period': period,
+      if (mine) 'mine': 'true',
+    }).query;
+    return PeriodReport.fromJson(Map<String, dynamic>.from(
+        await _client.request('GET', '/api/reports?$query')));
+  }
+
   Future<DailyReport> dailyReport(DateTime date, {bool mine = false}) async {
     final day = date.toIso8601String().split('T').first;
     final query =
