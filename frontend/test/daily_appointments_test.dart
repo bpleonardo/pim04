@@ -358,7 +358,14 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
-      MaterialApp(home: AgendaScreen(repository: FakeAgendaRepository())),
+      MaterialApp(
+          home: AgendaScreen(repository: FakeAgendaRepository()),
+          routes: {
+            AppRouter.employees: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Cadastro de funcionários'))),
+            AppRouter.availability: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Horários de trabalho'))),
+          }),
     );
     await tester.pumpAndSettle();
 
@@ -373,6 +380,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('N&E'), findsOneWidget);
     expect(find.text('Serviços'), findsOneWidget);
+    expect(find.text('Funcionários'), findsOneWidget);
+    expect(find.text('Disponibilidade'), findsOneWidget);
+    for (final page in [
+      ('Funcionários', 'Cadastro de funcionários'),
+      ('Disponibilidade', 'Horários de trabalho')
+    ]) {
+      await tester.tap(find.text(page.$1));
+      await tester.pumpAndSettle();
+      expect(find.text(page.$2), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('N&E'), findsNothing);
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+    }
     expect(tester.takeException(), isNull);
   });
 

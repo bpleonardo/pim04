@@ -112,6 +112,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
         ),
       );
 
+  void openMenuPage(String route) {
+    Navigator.pop(context);
+    Navigator.pushNamed(context, route);
+  }
+
   Widget mobileNavigation() => SafeArea(
         child: ListView(
           children: [
@@ -126,11 +131,19 @@ class _AgendaScreenState extends State<AgendaScreen> {
             ),
             ListTile(
               title: const Text('Serviços'),
-              onTap: () => Navigator.pushNamed(context, AppRouter.catalog),
+              onTap: () => openMenuPage(AppRouter.catalog),
+            ),
+            ListTile(
+              title: const Text('Funcionários'),
+              onTap: () => openMenuPage(AppRouter.employees),
+            ),
+            ListTile(
+              title: const Text('Disponibilidade'),
+              onTap: () => openMenuPage(AppRouter.availability),
             ),
             ListTile(
               title: const Text('Dashboard'),
-              onTap: () => Navigator.pushNamed(context, AppRouter.dashboard),
+              onTap: () => openMenuPage(AppRouter.dashboard),
             ),
             ListTile(
               leading: const Icon(Icons.refresh),
