@@ -408,6 +408,14 @@ class _CortesDiaScreenState extends State<CortesDiaScreen>
                   },
                 ),
                 ListTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Disponibilidade'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, AppRouter.availability);
+                  },
+                ),
+                ListTile(
                     leading: const Icon(Icons.analytics_outlined),
                     title: const Text('Indicadores'),
                     onTap: () {

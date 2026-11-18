@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:barbearia_frontend/app/theme/app_theme.dart';
 import 'package:barbearia_frontend/core/network/barbershop_api.dart';
 
 class AvailabilityScreen extends StatefulWidget {
@@ -67,9 +68,25 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }
 
   Future<void> _addInterval(_Day day) async {
-    final start = TextEditingController(text: '09:00');
-    final end = TextEditingController(text: '18:00');
     if (_busy) return;
+    final result = await _intervalDialog(day);
+    if (!mounted || result == null) return;
+    setState(() => day.intervals.add(result));
+  }
+
+  Future<void> _editInterval(_Day day, _Interval interval) async {
+    if (_busy) return;
+    final result = await _intervalDialog(day, interval: interval);
+    if (!mounted || result == null) return;
+    setState(() {
+      interval.start = result.start;
+      interval.end = result.end;
+    });
+  }
+
+  Future<_Interval?> _intervalDialog(_Day day, {_Interval? interval}) async {
+    final start = TextEditingController(text: interval?.start ?? '09:00');
+    final end = TextEditingController(text: interval?.end ?? '18:00');
     final form = GlobalKey<FormState>();
     final result = await showDialog<_Interval>(
       context: context,
@@ -77,32 +94,33 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
         title: Text('Horário de ${day.name}'),
         content: Form(
             key: form,
-            child: Row(children: [
-              Expanded(
-                  child: TextFormField(
-                      validator: (value) => RegExp(r'^([01]\d|2[0-3]):[0-5]\d$')
-                              .hasMatch(value ?? '')
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextFormField(
+                  validator: (value) =>
+                      RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(value ?? '')
                           ? null
                           : 'Use HH:mm',
-                      controller: start,
-                      decoration: const InputDecoration(labelText: 'Início'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: TextFormField(
-                      validator: (_) {
-                        final interval = _Interval(start.text, end.text);
-                        if (!_valid(interval)) {
-                          return 'Informe um fim posterior ao início';
-                        }
-                        if (day.intervals.any((other) =>
-                            interval.start.compareTo(other.end) < 0 &&
-                            interval.end.compareTo(other.start) > 0)) {
-                          return 'Este intervalo sobrepõe outro';
-                        }
-                        return null;
-                      },
-                      controller: end,
-                      decoration: const InputDecoration(labelText: 'Fim'))),
+                  controller: start,
+                  keyboardType: TextInputType.datetime,
+                  decoration: const InputDecoration(labelText: 'Início')),
+              const SizedBox(height: 12),
+              TextFormField(
+                  validator: (_) {
+                    final draft = _Interval(start.text, end.text);
+                    if (!_valid(draft)) {
+                      return 'Informe um fim posterior ao início';
+                    }
+                    if (day.intervals.any((other) =>
+                        other != interval &&
+                        draft.start.compareTo(other.end) < 0 &&
+                        draft.end.compareTo(other.start) > 0)) {
+                      return 'Este intervalo sobrepõe outro';
+                    }
+                    return null;
+                  },
+                  controller: end,
+                  keyboardType: TextInputType.datetime,
+                  decoration: const InputDecoration(labelText: 'Fim')),
             ])),
         actions: [
           TextButton(
@@ -114,13 +132,12 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                 Navigator.pop(context, _Interval(start.text, end.text));
               }
             },
-            child: const Text('Adicionar'),
+            child: Text(interval == null ? 'Adicionar' : 'Salvar'),
           ),
         ],
       ),
     );
-    if (!mounted || result == null) return;
-    setState(() => day.intervals.add(result));
+    return result;
   }
 
   bool _valid(_Interval interval) {
@@ -133,60 +150,84 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<_Day>>(
-        future: _days,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return snapshot.hasError
-                ? Center(child: Text('Erro: ${snapshot.error}'))
-                : const Center(child: CircularProgressIndicator());
-          }
-          return Column(children: [
-            if (_busy) const LinearProgressIndicator(),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  for (final day in snapshot.data!)
-                    Card(
-                      child: ExpansionTile(
-                        title: Text(day.name),
-                        subtitle: Text(day.intervals.isEmpty
-                            ? 'Sem disponibilidade'
-                            : day.intervals
-                                .map((item) => '${item.start}–${item.end}')
-                                .join(', ')),
-                        children: [
-                          for (final interval in day.intervals)
-                            ListTile(
-                              title: Text('${interval.start}–${interval.end}'),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: _busy
-                                    ? null
-                                    : () => setState(
-                                        () => day.intervals.remove(interval)),
-                              ),
+  Widget build(BuildContext context) {
+    final content = FutureBuilder<List<_Day>>(
+      future: _days,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return snapshot.hasError
+              ? Center(child: Text('Erro: ${snapshot.error}'))
+              : const Center(child: CircularProgressIndicator());
+        }
+        return Column(children: [
+          if (_busy) const LinearProgressIndicator(),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final day in snapshot.data!)
+                  Card(
+                    child: ExpansionTile(
+                      title: Text(day.name),
+                      subtitle: Text(day.intervals.isEmpty
+                          ? 'Sem disponibilidade'
+                          : day.intervals
+                              .map((item) => '${item.start}–${item.end}')
+                              .join(', ')),
+                      children: [
+                        for (final interval in day.intervals)
+                          ListTile(
+                            title: Text('${interval.start}–${interval.end}'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Editar intervalo',
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _editInterval(day, interval),
+                                ),
+                                IconButton(
+                                  tooltip: 'Remover intervalo',
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: _busy
+                                      ? null
+                                      : () => setState(
+                                          () => day.intervals.remove(interval)),
+                                ),
+                              ],
                             ),
-                          TextButton.icon(
-                            onPressed: _busy ? null : () => _addInterval(day),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Adicionar intervalo'),
                           ),
-                        ],
-                      ),
+                        TextButton.icon(
+                          onPressed: _busy ? null : () => _addInterval(day),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Adicionar intervalo'),
+                        ),
+                      ],
                     ),
-                  FilledButton.icon(
-                    onPressed: _busy ? null : _save,
-                    icon: const Icon(Icons.save_outlined),
-                    label: const Text('Salvar disponibilidade'),
                   ),
-                ],
-              ),
+                FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Salvar disponibilidade'),
+                ),
+              ],
             ),
-          ]);
-        },
-      );
+          ),
+        ]);
+      },
+    );
+    if (widget.embedded) return content;
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      appBar: AppBar(
+        title: const Text('Disponibilidade'),
+        actions: const [ThemeToggleButton()],
+      ),
+      body: content,
+    );
+  }
 }
 
 class _Day {
@@ -206,8 +247,8 @@ class _Day {
 
 class _Interval {
   _Interval(this.start, this.end);
-  final String start;
-  final String end;
+  String start;
+  String end;
   factory _Interval.fromJson(Map<String, dynamic> json) => _Interval(
         (json['inicio'] as String).substring(0, 5),
         (json['fim'] as String).substring(0, 5),
