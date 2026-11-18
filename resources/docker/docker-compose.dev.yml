@@ -25,4 +25,6 @@ services:
     environment:
       - REDIS_ARGS=--requirepass redis
 
+  pgadmin: !reset
+
   nginx: !reset
