@@ -78,7 +78,10 @@ namespace api.Data
                     cpf: "98765432101",
                     email: "ana.costa@empresa.com",
                     endereco: "Rua A, 100"
-                ),
+                )
+                {
+                    IsDeleted = false,
+                },
                 new Funcionario(
                     id: Guid.Parse("e5b7d9f1-2c4e-4a6b-8d3f-0c1e2a4b6d55"),
                     nome: "Bruno Alves",
@@ -86,7 +89,10 @@ namespace api.Data
                     cpf: "98765432102",
                     email: "bruno.alves@empresa.com",
                     endereco: "Rua B, 200"
-                ),
+                )
+                {
+                    IsDeleted = false,
+                },
             };
 
             // Serviços
@@ -97,19 +103,28 @@ namespace api.Data
                     nome: "Corte de Cabelo",
                     descricao: "Corte masculino/feminino",
                     preco: 50.00
-                ),
+                )
+                {
+                    Ativo = true,
+                },
                 new Servico(
                     id: Guid.Parse("07d9f1b3-4e6a-4c8d-8f5b-2e3a4c6d8f77"),
                     nome: "Barba",
                     descricao: "Aparar e modelar barba",
                     preco: 35.00
-                ),
+                )
+                {
+                    Ativo = true,
+                },
                 new Servico(
                     id: Guid.Parse("18e0a2c4-5f7b-4d9e-9a6c-3f4b5d7e9a88"),
                     nome: "Hidratação",
                     descricao: "Tratamento capilar",
                     preco: 80.00
-                ),
+                )
+                {
+                    Ativo = false,
+                },
             };
 
             // Usuários (1:1 com funcionário)
@@ -119,12 +134,68 @@ namespace api.Data
                     idFuncionario: Guid.Parse("d4a6c8e0-1b3d-4f5a-9c2e-7b0d1f3a5c44"),
                     login: "ana.costa",
                     senha: "senha_teste_ana"
-                ),
+                )
+                {
+                    PasswordExpired = false,
+                },
                 new Usuario(
                     idFuncionario: Guid.Parse("e5b7d9f1-2c4e-4a6b-8d3f-0c1e2a4b6d55"),
                     login: "bruno.alves",
                     senha: "senha_teste_bruno"
-                ),
+                )
+                {
+                    PasswordExpired = false,
+                },
+            };
+
+            var disponibilidades = new[]
+            {
+                new FuncionarioDisponibilidade
+                {
+                    Id = Guid.Parse("50b4d5e6-7c8a-4f90-8d1e-2a3b4c5d6e71"),
+                    IdFuncionario = Guid.Parse("d4a6c8e0-1b3d-4f5a-9c2e-7b0d1f3a5c44"),
+                    DiaSemana = 1,
+                    Inicio = new TimeOnly(9, 0),
+                    Fim = new TimeOnly(18, 0),
+                },
+                new FuncionarioDisponibilidade
+                {
+                    Id = Guid.Parse("61c5e6f7-8d9b-4a01-9e2f-3b4c5d6e7f82"),
+                    IdFuncionario = Guid.Parse("d4a6c8e0-1b3d-4f5a-9c2e-7b0d1f3a5c44"),
+                    DiaSemana = 2,
+                    Inicio = new TimeOnly(9, 0),
+                    Fim = new TimeOnly(18, 0),
+                },
+                new FuncionarioDisponibilidade
+                {
+                    Id = Guid.Parse("72d6f7a8-9e0c-4b12-8f30-4c5d6e7f8093"),
+                    IdFuncionario = Guid.Parse("e5b7d9f1-2c4e-4a6b-8d3f-0c1e2a4b6d55"),
+                    DiaSemana = 3,
+                    Inicio = new TimeOnly(10, 0),
+                    Fim = new TimeOnly(19, 0),
+                },
+            };
+
+            var refreshSessions = new[]
+            {
+                new RefreshSession
+                {
+                    Jti = Guid.Parse("83e7a8b9-0f1d-4c23-9a41-5d6e7f8091a4"),
+                    EmployeeId = Guid.Parse("d4a6c8e0-1b3d-4f5a-9c2e-7b0d1f3a5c44"),
+                    ExpiresAt = new DateTime(2027, 12, 31, 23, 59, 59, DateTimeKind.Utc),
+                },
+            };
+
+            var alteracoesPreco = new[]
+            {
+                new ServicePriceChange
+                {
+                    ServiceId = Guid.Parse("f6c8e0a2-3d5f-4b7c-9e4a-1d2f3b5c7e66"),
+                    ServiceName = "Corte de Cabelo",
+                    OldPrice = 45.00,
+                    NewPrice = 50.00,
+                    ChangedAt = new DateTime(2026, 4, 1, 12, 0, 0, DateTimeKind.Utc),
+                },
             };
 
             // Agendamentos
@@ -145,6 +216,9 @@ namespace api.Data
                     ),
                     Status = "concluido",
                     ValorTotal = 85.00,
+                    ClientRequestId = "seed-complete-001",
+                    LastMutationId = "seed-mutation-001",
+                    Revision = 1,
                 },
                 new Agendamento
                 {
@@ -158,6 +232,9 @@ namespace api.Data
                     DataConclusao = null,
                     Status = "agendado",
                     ValorTotal = 50.00,
+                    ClientRequestId = "seed-scheduled-002",
+                    LastMutationId = "seed-mutation-002",
+                    Revision = 1,
                 },
                 new Agendamento
                 {
@@ -171,6 +248,9 @@ namespace api.Data
                     DataConclusao = null,
                     Status = "cancelado",
                     ValorTotal = null,
+                    ClientRequestId = "seed-canceled-003",
+                    LastMutationId = "seed-mutation-003",
+                    Revision = 1,
                 },
             };
 
@@ -203,6 +283,9 @@ namespace api.Data
                 .. funcionarios,
                 .. servicos,
                 .. usuarios,
+                .. disponibilidades,
+                .. refreshSessions,
+                .. alteracoesPreco,
                 .. agendamentos,
                 .. servicosRealizados,
             ];
