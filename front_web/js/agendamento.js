@@ -621,7 +621,7 @@ function selecionarHorario(btn) {
 // Etapa 1: nome, telefone e e-mail.
 function validarStep1() {
   const nome = dom.nome.value.trim();
-  const telefone = dom.tel.value.trim();
+  const telefone = dom.tel.value.replace(/\D/g, '');
   const email = dom.email.value.trim();
   const emailInput = dom.email;
 
@@ -636,7 +636,7 @@ function validarStep1() {
     valido = false;
   }
 
-  if (!telefone || telefone.length < 14) {
+  if (!/^\d{11}$/.test(telefone)) {
     mostrarErroDom(dom.tel, dom.telErr);
     valido = false;
   }

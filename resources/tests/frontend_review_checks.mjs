@@ -43,4 +43,18 @@ await latest;
 replies[0](response('10:00'));
 await previous;
 assert.equal(vm.runInContext('horarios[0].hora', racing), '11:00', 'Resposta antiga substituiu os horários do barbeiro atual.');
+
+const validation = page(async () => ({ ok: true, json: async () => ({}) }));
+vm.runInContext(`
+  const field = value => ({ value, classList: { add() {}, remove() {} } });
+  dom.nome = field('Cliente');
+  dom.tel = field('(11) 9999-9999');
+  dom.email = { ...field(''), checkValidity: () => true };
+  dom.nomeErr = { style: {} };
+  dom.telErr = { style: {} };
+  dom.emailErr = { style: {} };
+  if (validarStep1()) throw new Error('Telefone de 10 dígitos foi aceito.');
+  dom.tel.value = '(11) 99999-9999';
+  if (!validarStep1()) throw new Error('Telefone de 11 dígitos foi rejeitado.');
+`, validation);
 console.log('PASS: mensagens da API, timeout com liberação e resposta antiga ao trocar profissional.');
