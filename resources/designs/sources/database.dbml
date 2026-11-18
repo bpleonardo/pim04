@@ -1,61 +1,132 @@
-// Veja https://dbdiagram.io
+// Gerado a partir do snapshot atual do Entity Framework Core.
 
-Project pim03 {
+Project pim04 {
   database_type: 'PostgreSQL'
+  Note: 'Esquema da aplicação gerado pelo Entity Framework Core. Tabelas internas do EF Core não estão incluídas.'
 }
 
-Table tb_cliente {
-  id uuid [pk, increment, not null]
-  nome varchar [not null]
-  telefone varchar(13) [not null]
-  email varchar
-  cpf varchar(11) [unique]
-  dt_nasc date
-}
-
-Table tb_funcionario {
-  id uuid [pk, increment, not null]
-  nome varchar [not null]
-  cpf varchar(11) [not null, unique]
-  email varchar [not null, unique]
-  endereco varchar [not null]
-}
-
-Table tb_agendamento {
-  id uuid [pk, increment, not null]
-  id_cliente uuid [not null]
-  id_funcionario uuid [not null]
-  dt_agendamento timestamptz [not null]
-  dt_conclusao timestamptz
-  status varchar(9) [not null, note: 'agendado, concluido, cancelado']
-  total numeric(6,2)
-}
-
-Table tb_usuario {
-  id_funcionario uuid [pk, not null]
-  login varchar [not null, unique]
-  senha varchar [not null, note: 'Tipo deveria ser bytes, mas será alterado posteriormente.']
-}
-
-Table tb_servico {
-  id uuid [pk, increment, not null]
-  nome varchar [not null, unique]
-  descricao varchar
-  valor numeric(6,2) [not null]
-}
-
-Table tb_servico_realizado {
-  id_agendamento uuid [not null]
-  id_servico uuid [not null]
-  valor numeric(6,2) [not null]
+Table Agendamentos {
+  Id uuid [pk]
+  ClientRequestId varchar(32) [unique]
+  DataAgendamento timestamptz [not null]
+  DataConclusao timestamptz
+  IdCliente uuid [not null]
+  IdFuncionario uuid [not null]
+  LastMutationId varchar(32)
+  RequestHash text
+  Revision bigint [not null]
+  Status varchar(9) [not null]
+  ValorTotal double
 
   indexes {
-    (id_servico, id_agendamento) [pk]
+    ClientRequestId [unique]
+    IdCliente
+    IdFuncionario
   }
 }
 
-Ref tb_agendamento_fk01: tb_agendamento.id_cliente > tb_cliente.id [update: cascade, delete: restrict]
-Ref tb_agendamento_fk02: tb_agendamento.id_funcionario > tb_funcionario.id [update: cascade, delete: restrict]
-Ref tb_usuario_fk01: tb_usuario.id_funcionario - tb_funcionario.id [update: cascade, delete: cascade]
-Ref tb_servico_realizado_fk01: tb_servico_realizado.id_agendamento > tb_agendamento.id [update: cascade, delete: cascade]
-Ref tb_servico_realizado_fk02: tb_servico_realizado.id_servico > tb_servico.id [update: cascade, delete: restrict]
+Table Clientes {
+  Id uuid [pk]
+  CPF varchar(11) [unique]
+  DtNascimento date
+  Email text
+  Nome text [not null]
+  Telefone varchar(13)
+
+  indexes {
+    CPF [unique]
+  }
+}
+
+Table Funcionarios {
+  Id uuid [pk]
+  CPF varchar(11) [unique]
+  Email text [unique]
+  Endereco text
+  IsDeleted boolean [not null]
+  Nome text [not null]
+  Telefone varchar(13)
+
+  indexes {
+    CPF [unique]
+    Email [unique]
+  }
+}
+
+Table FuncionarioDisponibilidades {
+  Id uuid [pk]
+  DiaSemana integer [not null]
+  Fim time [not null]
+  IdFuncionario uuid [not null]
+  Inicio time [not null]
+
+  indexes {
+    (IdFuncionario, DiaSemana)
+  }
+}
+
+Table RefreshSessions {
+  Jti uuid [pk]
+  EmployeeId uuid [not null]
+  ExpiresAt timestamptz [not null]
+
+  indexes {
+    EmployeeId
+  }
+}
+
+Table ServicePriceChanges {
+  Id bigint [pk]
+  ChangedAt timestamptz [not null]
+  NewPrice double [not null]
+  OldPrice double [not null]
+  ServiceId uuid
+  ServiceName text [not null]
+
+  indexes {
+    ServiceId
+  }
+}
+
+Table Servicos {
+  Id uuid [pk]
+  Ativo boolean [not null]
+  Descricao text
+  Nome text [not null]
+  Preco double [not null]
+
+  indexes {
+    Nome [unique]
+  }
+}
+
+Table ServicosRealizados {
+  IdServico uuid [not null]
+  IdAgendamento uuid [not null]
+  Valor double [not null]
+
+  indexes {
+    (IdServico, IdAgendamento) [pk]
+    IdAgendamento
+  }
+}
+
+Table Usuarios {
+  IdFuncionario uuid [pk]
+  Login text [not null]
+  password_expired boolean [not null]
+  Senha text [not null]
+
+  indexes {
+    Login [unique]
+  }
+}
+
+Ref agendamento_cliente: Agendamentos.IdCliente > Clientes.Id [delete: restrict]
+Ref agendamento_funcionario: Agendamentos.IdFuncionario > Funcionarios.Id [delete: restrict]
+Ref disponibilidade_funcionario: FuncionarioDisponibilidades.IdFuncionario > Funcionarios.Id [delete: cascade]
+Ref refresh_usuario: RefreshSessions.EmployeeId > Usuarios.IdFuncionario [delete: cascade]
+Ref historico_servico: ServicePriceChanges.ServiceId ?> Servicos.Id [delete: set null]
+Ref realizado_agendamento: ServicosRealizados.IdAgendamento > Agendamentos.Id [delete: cascade]
+Ref realizado_servico: ServicosRealizados.IdServico > Servicos.Id [delete: restrict]
+Ref usuario_funcionario: Usuarios.IdFuncionario - Funcionarios.Id [delete: cascade]
