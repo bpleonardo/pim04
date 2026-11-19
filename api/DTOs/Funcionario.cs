@@ -8,21 +8,30 @@ namespace api.DTOs
         public string Nome { get; init; } = nome;
     }
 
+    public readonly struct FuncionarioPublicoDTO(Guid id, string nome, bool isDeleted = false)
+    {
+        public Guid Id { get; init; } = id;
+        public string Nome { get; init; } = nome;
+        public bool IsDeleted { get; init; } = isDeleted;
+    }
+
     public struct FuncionarioDTO(
         Guid id,
         string nome,
         string telefone,
         string? cpf,
         string? email,
-        string endereco
+        string? endereco,
+        bool isDeleted = false
     )
     {
         public Guid Id { get; init; } = id;
         public string Nome { get; set; } = nome;
-        public string Telefone { get; set; } = telefone;
+        public string? Telefone { get; set; } = telefone;
         public string? CPF { get; set; } = cpf;
         public string? Email { get; set; } = email;
-        public string Endereco { get; set; } = endereco;
+        public string? Endereco { get; set; } = endereco;
+        public bool IsDeleted { get; init; } = isDeleted;
     }
 
     public struct FuncionarioCreateDTO(
@@ -53,5 +62,11 @@ namespace api.DTOs
         [Required(ErrorMessage = "{0} é obrigatório!")]
         [MinLength(5, ErrorMessage = "{0} deve conter pelo menos {1} caracteres!")]
         public string Endereco { get; set; } = endereco;
+
+        [MinLength(3), MaxLength(100)]
+        public string? Login { get; set; }
+
+        [MinLength(6), MaxLength(128)]
+        public string? InitialPassword { get; set; }
     }
 }

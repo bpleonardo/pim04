@@ -17,6 +17,26 @@ namespace api.Services
             return await _repo.GetAll();
         }
 
+        public Task<FuncionarioPublicoDTO[]> GetPublic() => _repo.GetPublic();
+
+        public async Task CreateOne(FuncionarioCreateDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Login) || dto.Login.Trim().Length < 3 ||
+                string.IsNullOrEmpty(dto.InitialPassword) || dto.InitialPassword.Length < 6)
+                throw new ValidationException("Informe um login e uma senha inicial com pelo menos 6 caracteres.");
+            var employee = new Funcionario(
+                null,
+                dto.Nome,
+                dto.Telefone,
+                dto.CPF,
+                dto.Email,
+                dto.Endereco
+            );
+            await _repo.CreateOne(new FuncionarioDTO(
+                employee.Id, employee.Nome, employee.Telefone ?? string.Empty, employee.CPF,
+                employee.Email, employee.Endereco), dto.Login.Trim(), dto.InitialPassword);
+        }
+
         /// <summary>
         /// Retrieves a single employee by id or throws ResourceNotFoundException.
         /// </summary>
@@ -29,27 +49,18 @@ namespace api.Services
         /// <summary>
         /// Creates a new employee.
         /// </summary>
-        public async Task CreateOne(FuncionarioCreateDTO dto)
+        public async Task UpdateOne(Guid id, FuncionarioCreateDTO dto)
         {
-            var newFuncionario = new Funcionario(
-                null,
-                dto.Nome,
-                dto.Telefone,
-                dto.CPF,
-                dto.Email,
-                dto.Endereco
-            );
+            if (!await _repo.UpdateOne(id, dto))
+                throw new ResourceNotFoundException("Funcionário não encontrado ou já excluído.");
+        }
 
-            await _repo.CreateOne(
-                new FuncionarioDTO(
-                    newFuncionario.Id,
-                    newFuncionario.Nome,
-                    newFuncionario.Telefone ?? string.Empty,
-                    newFuncionario.CPF,
-                    newFuncionario.Email,
-                    newFuncionario.Endereco
-                )
-            );
+        public async Task<bool> DeleteOne(Guid id)
+        {
+            var wasSoftDeleted = await _repo.DeleteOne(id);
+            if (wasSoftDeleted is null)
+                throw new ResourceNotFoundException("Funcionário não encontrado ou já excluído.");
+            return wasSoftDeleted.Value;
         }
     }
 }

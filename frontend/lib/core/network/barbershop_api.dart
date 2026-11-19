@@ -1,0 +1,199 @@
+import 'package:barbearia_frontend/features/dashboard/models/period_report.dart';
+import 'package:barbearia_frontend/features/dashboard/models/daily_report.dart';
+import 'package:barbearia_frontend/features/catalog/models/service_price_change.dart';
+import 'package:barbearia_frontend/features/catalog/models/service.dart';
+import 'package:barbearia_frontend/features/employees/models/employee.dart';
+import 'package:barbearia_frontend/features/appointments/models/appointment.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
+
+class BarbershopApi {
+  BarbershopApi({ApiClient? client}) : _client = client ?? ApiClient();
+  final ApiClient _client;
+  String? selectedEmployeeId;
+  Future<Map<String, dynamic>> login(String login, String password) async =>
+      Map<String, dynamic>.from(await _client.request('POST', '/api/Login',
+          body: {'login': login, 'senha': password}));
+  Future<void> setInitialPassword(
+      String login, String password, String newPassword) async {
+    await _client.request('POST', '/api/login/initial-password', body: {
+      'login': login,
+      'senha': password,
+      'newPassword': newPassword,
+    });
+  }
+
+  Future<List<Service>> services() async =>
+      (await _client.request('GET', '/api/Servicos') as List)
+          .map((x) => Service.fromJson(Map<String, dynamic>.from(x)))
+          .toList();
+  Future<List<ServicePriceChange>> servicePriceHistory(String id) async =>
+      (await _client.request('GET', '/api/servicos/$id/price-history') as List)
+          .map((item) =>
+              ServicePriceChange.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+  Future<PeriodReport> periodReport(DateTime date, String period,
+      {bool mine = false}) async {
+    final query = Uri(queryParameters: {
+      'date': date.toIso8601String().split('T').first,
+      'period': period,
+      if (mine) 'mine': 'true',
+    }).query;
+    return PeriodReport.fromJson(Map<String, dynamic>.from(
+        await _client.request('GET', '/api/reports?$query')));
+  }
+
+  Future<DailyReport> dailyReport(DateTime date, {bool mine = false}) async {
+    final day = date.toIso8601String().split('T').first;
+    final query =
+        Uri(queryParameters: {'date': day, if (mine) 'mine': 'true'}).query;
+    return DailyReport.fromJson(Map<String, dynamic>.from(
+        await _client.request('GET', '/api/reports/daily?$query')));
+  }
+
+  Future<void> saveService(Service service, {required bool creating}) async {
+    await _client.request(
+      creating ? 'POST' : 'PUT',
+      creating ? '/api/servicos' : '/api/servicos/${service.id}',
+      body: {
+        'nome': service.name,
+        'descricao': service.description,
+        'preco': service.price
+      },
+    );
+  }
+
+  Future<void> setServiceEnabled(String id, bool enabled) async {
+    await _client
+        .request('PATCH', '/api/servicos/$id', body: {'ativo': enabled});
+  }
+
+  Future<void> deleteService(String id) async {
+    await _client.request('DELETE', '/api/servicos/$id');
+  }
+
+  Future<List<Employee>> employees() async =>
+      (await _client.request('GET', '/api/Funcionarios') as List)
+          .map((x) => Employee.fromJson(Map<String, dynamic>.from(x)))
+          .toList();
+
+  Future<List<Map<String, dynamic>>> availableSlots(
+    DateTime date, {
+    String? employeeId,
+  }) async {
+    final dateValue =
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final query = Uri(queryParameters: {
+      'date': dateValue,
+      if (employeeId != null) 'employeeId': employeeId,
+    }).query;
+    return (await _client.request('GET', '/api/Horarios?$query') as List)
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> myAvailability() async =>
+      Map<String, dynamic>.from(
+          await _client.request('GET', '/api/Horarios/me'));
+
+  Future<void> saveAvailability(Map<String, dynamic> availability) async {
+    await _client.request(
+      'PUT',
+      '/api/Horarios/me',
+      body: availability,
+    );
+  }
+
+  Future<void> saveEmployee(Employee employee,
+      {required bool creating, String? login, String? initialPassword}) async {
+    await _client.request(
+      creating ? 'POST' : 'PUT',
+      creating ? '/api/funcionarios' : '/api/funcionarios/${employee.id}',
+      body: {
+        'nome': employee.name,
+        'telefone': employee.phone,
+        'cpf': employee.cpf,
+        'email': employee.email,
+        'endereco': employee.address,
+        if (creating) 'login': login,
+        if (creating) 'initialPassword': initialPassword,
+      },
+    );
+  }
+
+  Future<void> deleteEmployee(String id) async {
+    await _client.request('DELETE', '/api/funcionarios/$id');
+  }
+
+  Future<List<Map<String, dynamic>>> timeSlots(DateTime selectedDate) async {
+    final date =
+        '${selectedDate.year.toString().padLeft(4, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+    final query = Uri(queryParameters: {
+      'date': date,
+      if (selectedEmployeeId != null) 'employeeId': selectedEmployeeId!,
+    }).query;
+    return (await _client.request('GET', '/api/Horarios?$query') as List)
+        .map((x) => Map<String, dynamic>.from(x))
+        .toList();
+  }
+
+  Future<List<Appointment>> appointments({
+    String? date,
+    bool mine = false,
+    String? bearerToken,
+  }) async {
+    final query = Uri(queryParameters: {
+      if (date != null) 'date': date,
+      if (mine) 'mine': 'true',
+    }).query;
+    final path =
+        query.isEmpty ? '/api/agendamentos' : '/api/agendamentos?$query';
+    final response =
+        await _client.request('GET', path, bearerToken: bearerToken) as List;
+    return response
+        .map((item) => Appointment.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<void> createAppointment(
+      {required String name,
+      required String phone,
+      required String employeeId,
+      required DateTime scheduledAt,
+      required List<String> services,
+      String? nonce}) async {
+    await _client.request('POST', '/api/agendamentos', nonce: nonce, body: {
+      'nomeCliente': name,
+      'telefoneCliente': phone,
+      'idFuncionario': employeeId,
+      'dataAgendamento': scheduledAt.toIso8601String(),
+      'idServicos': services,
+    });
+  }
+
+  Future<Map<String, dynamic>> createBooking(
+          Map<String, dynamic> payload, String nonce) async =>
+      Map<String, dynamic>.from(await _client
+          .request('POST', '/api/agendamentos', body: payload, nonce: nonce));
+
+  Future<Appointment> appointment(String id) async =>
+      Appointment.fromJson(Map<String, dynamic>.from(
+          await _client.request('GET', '/api/agendamentos/$id')));
+
+  Future<Map<String, dynamic>> editAppointment(
+          String id, Map<String, dynamic> payload, {String? nonce}) async =>
+      Map<String, dynamic>.from(await _client.request(
+          'PUT', '/api/agendamentos/$id',
+          body: payload, nonce: nonce));
+
+  Future<Map<String, dynamic>> setAppointmentStatus(
+          String id, Map<String, dynamic> payload, {String? nonce}) async =>
+      Map<String, dynamic>.from(await _client.request(
+          'PATCH', '/api/agendamentos/$id',
+          body: payload, nonce: nonce));
+
+  Future<void> updateStatus(String id, String status,
+      {String? bearerToken, String? nonce}) async {
+    await _client.request('PATCH', '/api/agendamentos/$id',
+        body: {'status': status}, bearerToken: bearerToken, nonce: nonce);
+  }
+}

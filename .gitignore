@@ -782,3 +782,17 @@ lib/generated_plugin_registrant.dart
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/csharp,aspnetcore,flutter,visualstudio,visualstudiocode
+# Local environment and editor settings
+.env
+.vscode/settings.json
+
+
+# Arquivos locais de ambiente e bancos de desenvolvimento
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*

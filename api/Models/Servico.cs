@@ -26,6 +26,8 @@ namespace api.Models
         [Range(0.01, 9999.99)]
         public double Preco { get; set; }
 
+        public bool Ativo { get; set; } = true;
+
         // Navegação para a tabela intermediária de serviços prestados
         public ICollection<ServicoRealizado> ServicosRealizados { get; set; } = [];
 

@@ -1,0 +1,48 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+
+title Diagrama de Casos de Uso - Sistema da Barbearia
+
+actor Cliente
+actor Barbeiro
+actor Gerente
+
+Barbeiro <|-- Gerente
+
+circle "Autenticar-se" as UC01
+circle "Gerenciar clientes" as UC02
+circle "Visualizar histórico de clientes" as UC03
+circle "Agendar horário" as UC04
+circle "Editar ou cancelar agendamento" as UC05
+circle "Visualizar agenda do dia" as UC06
+circle "Registrar atendimento" as UC07
+circle "Gerenciar serviços" as UC08
+circle "Gerenciar barbeiros" as UC09
+circle "Controlar financeiro" as UC10
+circle "Gerar relatórios" as UC11
+circle "Consultar dashboard" as UC12
+
+Cliente --> UC01
+Cliente --> UC04
+Cliente --> UC05
+Cliente --> UC03
+
+Barbeiro --> UC01
+Barbeiro --> UC06
+Barbeiro --> UC07
+
+Gerente --> UC02
+Gerente --> UC03
+Gerente --> UC04
+Gerente --> UC05
+Gerente --> UC06
+Gerente --> UC07
+Gerente --> UC08
+Gerente --> UC09
+Gerente --> UC10
+Gerente --> UC11
+Gerente --> UC12
+
+@enduml

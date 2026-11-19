@@ -14,6 +14,14 @@ namespace api.Repositories
     {
         private readonly AppDbContext _context = context;
 
+        public Task<ServicePriceChangeDTO[]> GetPriceHistory(Guid serviceId) => _context.ServicePriceChanges
+            .AsNoTracking()
+            .Where(change => change.ServiceId == serviceId)
+            .OrderByDescending(change => change.ChangedAt)
+            .ThenByDescending(change => change.Id)
+            .Select(change => new ServicePriceChangeDTO(change.Id, change.OldPrice, change.NewPrice, change.ChangedAt))
+            .ToArrayAsync();
+
         /// <summary>
         /// Retrieves all services.
         /// </summary>
@@ -21,7 +29,7 @@ namespace api.Repositories
         {
             return await _context
                 .Servicos.AsNoTracking()
-                .Select(s => new ServicoDTO(s.Id, s.Nome, s.Descricao, s.Preco))
+                .Select(s => new ServicoDTO(s.Id, s.Nome, s.Descricao, s.Preco, s.Ativo, s.ServicosRealizados.Any()))
                 .ToArrayAsync();
         }
 
@@ -30,16 +38,11 @@ namespace api.Repositories
         /// </summary>
         public async Task<ServicoDTO?> GetOne(Guid id)
         {
-            var servico = await _context
-                .Servicos.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == id);
-
-            if (servico != null)
-            {
-                return new ServicoDTO(servico.Id, servico.Nome, servico.Descricao, servico.Preco);
-            }
-
-            return null;
+            return await _context.Servicos.AsNoTracking()
+                .Where(s => s.Id == id)
+                .Select(s => (ServicoDTO?)new ServicoDTO(
+                    s.Id, s.Nome, s.Descricao, s.Preco, s.Ativo, s.ServicosRealizados.Any()))
+                .FirstOrDefaultAsync();
         }
 
         /// <summary>
@@ -62,7 +65,7 @@ namespace api.Repositories
             {
                 // restrict_violation / foreign_key_violation: O serviço está sendo referenciado por um agendamento.
                 throw new ConflictException(
-                    "Não é possível modificar este recurso.",
+                    "Este serviço está vinculado a agendamentos. Desabilite-o para impedir novas reservas.",
                     "CANT_MODIFY"
                 );
             }
@@ -84,7 +87,7 @@ namespace api.Repositories
         /// <summary>
         /// Updates an existing service, optionally performing an upsert if requested.
         /// </summary>
-        public async Task<bool> UpdateOne(ServicoDTO dto, bool upsert = false)
+        public async Task<bool> UpdateOne(ServicoDTO dto, bool upsert = false, bool? enabled = null)
         {
             var existing = await _context.Servicos.FindAsync(dto.Id);
 
@@ -93,6 +96,7 @@ namespace api.Repositories
                 existing.Nome = dto.Nome;
                 existing.Descricao = dto.Descricao;
                 existing.Preco = dto.Preco;
+                if (enabled.HasValue) existing.Ativo = enabled.Value;
 
                 await _context.SaveChangesAsync();
                 return true;

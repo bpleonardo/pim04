@@ -1,5 +1,6 @@
 using api.Data;
 using api.DTOs;
+using api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Repositories
@@ -11,13 +12,58 @@ namespace api.Repositories
     {
         private readonly AppDbContext _context = context;
 
+        public async Task<DisponibilidadeDTO> GetDisponibilidade(Guid employeeId)
+        {
+            var intervals = await _context.FuncionarioDisponibilidades
+                .AsNoTracking()
+                .Where(item => item.IdFuncionario == employeeId)
+                .OrderBy(item => item.DiaSemana)
+                .ThenBy(item => item.Inicio)
+                .ToListAsync();
+
+            return new DisponibilidadeDTO(
+                intervals.GroupBy(item => item.DiaSemana)
+                    .Select(group => new DiaDisponibilidadeDTO(
+                        group.Key,
+                        group.Select(item => new IntervaloDisponibilidadeDTO(
+                            item.Inicio,
+                            item.Fim
+                        )).ToList()
+                    )).ToList()
+            );
+        }
+
+        public async Task SaveDisponibilidade(
+            Guid employeeId,
+            DisponibilidadeDTO availability
+        )
+        {
+            var current = await _context.FuncionarioDisponibilidades
+                .Where(item => item.IdFuncionario == employeeId)
+                .ToListAsync();
+            _context.FuncionarioDisponibilidades.RemoveRange(current);
+
+            var rows = availability.Dias.SelectMany(day => day.Intervalos.Select(interval =>
+                new FuncionarioDisponibilidade
+                {
+                    Id = Guid.NewGuid(),
+                    IdFuncionario = employeeId,
+                    DiaSemana = day.DiaSemana,
+                    Inicio = interval.Inicio,
+                    Fim = interval.Fim,
+                }));
+            await _context.FuncionarioDisponibilidades.AddRangeAsync(rows);
+            await _context.SaveChangesAsync();
+        }
+
         /// <summary>
         /// Retrieves available 30-minute time slots for a given date and operating hour range.
         /// </summary>
         public async Task<List<HorarioDTO>> GetHorariosDisponiveis(
             DateOnly date,
             TimeOnly startTime,
-            TimeOnly endTime
+            TimeOnly endTime,
+            Guid? employeeId = null
         )
         {
             // Determina a janela do dia no fuso horário de São Paulo
@@ -26,8 +72,14 @@ namespace api.Repositories
             var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
             var endUtc = startUtc.AddDays(1);
 
-            // Contagem total de funcionários cadastrados
-            var totalFuncionarios = await _context.Funcionarios.CountAsync();
+            var employeeIds = await _context.Funcionarios
+                .Where(item => !item.IsDeleted && (!employeeId.HasValue || item.Id == employeeId.Value))
+                .Select(item => item.Id)
+                .ToListAsync();
+            var configuredIntervals = await _context.FuncionarioDisponibilidades
+                .AsNoTracking()
+                .Where(item => employeeIds.Contains(item.IdFuncionario) && item.DiaSemana == (int)date.DayOfWeek)
+                .ToListAsync();
 
             // Obtém agendamentos do dia para conferir funcionários ocupados em cada slot
             var busyAppointments = await _context.Agendamentos
@@ -40,6 +92,7 @@ namespace api.Repositories
                 .Select(a => new { a.IdFuncionario, a.DataAgendamento })
                 .ToListAsync();
 
+            var utcNow = DateTime.UtcNow;
             var horarios = new List<HorarioDTO>();
             var current = startTime;
 
@@ -49,14 +102,12 @@ namespace api.Repositories
                 var slotLocal = date.ToDateTime(current, DateTimeKind.Unspecified);
                 var slotUtc = TimeZoneInfo.ConvertTimeToUtc(slotLocal, tz);
 
-                // Slot está disponível se pelo menos um funcionário não estiver com agendamento ativo
-                var busyCount = busyAppointments
-                    .Where(a => a.DataAgendamento == slotUtc)
-                    .Select(a => a.IdFuncionario)
-                    .Distinct()
-                    .Count();
-
-                var isAvailable = totalFuncionarios > 0 && busyCount < totalFuncionarios;
+                // A disponibilidade e a ocupação precisam corresponder ao mesmo funcionário.
+                var isAvailable = slotUtc > utcNow && employeeIds.Any(id =>
+                    configuredIntervals.Any(interval => interval.IdFuncionario == id
+                        && current >= interval.Inicio && current < interval.Fim)
+                    && !busyAppointments.Any(appointment =>
+                        appointment.IdFuncionario == id && appointment.DataAgendamento == slotUtc));
 
                 horarios.Add(new HorarioDTO(slotStr, isAvailable));
 

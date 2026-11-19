@@ -10,6 +10,11 @@ services:
     restart: no
     volumes:
       - postgres_data:/var/lib/postgresql/18/docker
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: no
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
   redis:
     image: redis:latest
     restart: no
@@ -20,3 +25,4 @@ services:
       - ./resources/nginx/default.conf:/etc/nginx/conf.d/default.conf
 volumes:
   postgres_data:
+  pgadmin_data:

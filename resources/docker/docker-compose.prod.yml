@@ -7,9 +7,17 @@ services:
     restart: unless-stopped
 
   postgres:
-    ports: !reset
     env_file:
       - ./.env
+    restart: unless-stopped
+
+  pgadmin:
+    ports:
+      - "8003:80"
+    env_file:
+      - ./.env
+    depends_on:
+      - postgres
     restart: unless-stopped
 
   redis:
@@ -22,3 +30,13 @@ services:
     ports:
       - '80:80'
     restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./front_web:/srv/public:ro
+      - type: bind
+        source: ./frontend/build/web
+        target: /srv/flutter/admin
+        read_only: true
+        bind:
+          create_host_path: false

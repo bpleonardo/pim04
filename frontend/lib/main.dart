@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'app/app.dart';
+import 'package:barbearia_frontend/app/app.dart';
+import 'package:barbearia_frontend/core/network/api_client.dart';
+import 'package:barbearia_frontend/core/config/api_config.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BarbeariaApp());
+  await ApiConfig.initialize();
+  await ApiClient.restoreSession();
+  runApp(const BarbershopApp());
 }

@@ -9,7 +9,8 @@ class ResponsiveLayout extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) => Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: constraints.maxWidth < 600 ? 440 : 480),
+          constraints:
+              BoxConstraints(maxWidth: constraints.maxWidth < 600 ? 440 : 480),
           child: child,
         ),
       ),

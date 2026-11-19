@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace api.DTOs
 {
@@ -13,6 +14,16 @@ namespace api.DTOs
         public string Senha { get; set; }
     }
 
+    public sealed class InitialPasswordRequest
+    {
+        [Required, MinLength(3)]
+        public string Login { get; init; } = string.Empty;
+        [Required, MinLength(6), MaxLength(128)]
+        public string Senha { get; init; } = string.Empty;
+        [Required, MinLength(6), MaxLength(128)]
+        public string NewPassword { get; init; } = string.Empty;
+    }
+
     public readonly struct AuthUser
     {
         public Guid Id { get; init; }
@@ -20,9 +31,20 @@ namespace api.DTOs
         public string Login { get; init; }
     }
 
+    public readonly struct RefreshRequest
+    {
+        [Required(ErrorMessage = "{0} é obrigatória!")]
+        [JsonPropertyName("refresh_token")]
+        public string RefreshToken { get; init; }
+    }
+
     public readonly struct LoginResponse
     {
+        [JsonPropertyName("access_token")]
         public string Token { get; init; }
+
+        [JsonPropertyName("refresh_token")]
+        public string RefreshToken { get; init; }
         public AuthUser User { get; init; }
     }
 }
